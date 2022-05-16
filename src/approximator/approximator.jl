@@ -1,14 +1,20 @@
-import Flux: Chain
-
 """
-An approximator is a functional object to estimate a state.
-Two typical kinds of approximators are
-[`AbstractVApproximator`](@ref) and [`AbstractQApproximator`](@ref).
+An approximator is a functional object that produces an output given an input.
+The main backend for neural networks is Flux/Zygote.
+Tabular is simply a lookup table.
 """
 
 abstract type AbstractApproximator end
 abstract type AbstractChain end
 abstract type AbstractNamed end
 
-include("neuralnet.jl")
 include("tabular.jl")
+include("neuralnet.jl")
+
+##
+## Specialize NN Architectures
+##
+
+include("PVN.jl")
+include("attention.jl")
+include("PE.jl")

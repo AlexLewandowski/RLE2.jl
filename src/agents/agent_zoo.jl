@@ -58,21 +58,7 @@ function get_agent(
             out_dim = hidden_size
             joint_encode_dim = encode_dim_s + encode_dim_a
 
-
-            if contains(string(env.state_representation), "PD-0-plus")
-                inputs, _ = get_input(obs)
-
-                A_len = length(inputs)
-                As_list = []
-                for i = 1:A_len
-                    As = meta_state_encoder(repeat([s_dim],L), repeat([a_dim],L), encode_dim, seed, aux_dim = aux_dim, σ = activation, pooling_f = kwargs["pooling_func"])
-                    push!(As_list, As)
-                end
-
-                As = MultiSequenceNeuralNetwork(As_list)
-                out_dim = 2*out_dim
-
-            elseif contains(string(env.state_representation), "buffer") || contains(string(env.state_representation), "PD")
+            if contains(string(env.state_representation), "buffer") || contains(string(env.state_representation), "PD")
                 As = meta_state_encoder(repeat([s_dim],L), repeat([a_dim],L), encode_dim, seed, aux_dim = aux_dim, σ = activation, pooling_f = kwargs[:pooling_func])
             elseif contains(string(env.state_representation), "PEN")
 
