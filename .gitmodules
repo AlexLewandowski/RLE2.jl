@@ -1,0 +1,3 @@
+[submodule "Replotuce"]
+	path = Replotuce
+	url = git@github.com:AlexLewandowski/Replotuce.git
