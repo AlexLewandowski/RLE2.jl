@@ -6,7 +6,9 @@
 git clone git@github.com:AlexLewandowski/RLE2.jl.git ~/.julia/dev/RLE2
 cd ~/.julia/dev/RLE2/
 git submodule update --init --recursive
+
 julia
+
 using Pkg
 Pkg.activate(".")
 Pkg.instantiate()
@@ -41,6 +43,7 @@ julia test/run_test.jl --config_file "configs/cartpole.toml"
 This can also be done in an interactive session, as follows
 
 ``` julia
+include("test/setup.jl")
 ag, en = run_test("configs/cartpole.toml", return_early = false, test_hyperparams = false);
 ```
 
