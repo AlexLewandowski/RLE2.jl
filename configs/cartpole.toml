@@ -1,0 +1,45 @@
+[config]
+save_dir="results/cartpole"
+exp_file="experiment/experiment.jl"
+exp_module_name = "Main"
+exp_func_name = "run_experiment"
+pre_exp_files = []
+arg_iter_type = "iter"
+post_exp = "gen_metric_dict"
+
+[static_args]
+init_num_episodes = 100
+init_policy = "random"
+num_grad_steps = 1
+num_env_steps = 1
+num_episodes = 200
+max_num_episodes = 100
+max_episode_length = 200
+predict_window = 0
+history_window = 1
+EnvType = "CartPole"
+hidden_size = 64
+num_layers = 2
+activation = "relu"
+update_freq = 10
+gamma = 0.99
+overlap = true
+optimizer = "ADAM"
+batch_size = 128
+force = "nothing"
+gpu = false
+
+online_cbs = """
+        rollout_returns,
+        buffer_loss,
+        mc_buffer_loss,
+        online_returns,
+"""
+
+offline_cbs = """
+"""
+
+[sweep_args]
+lr = "[0.1f0^(i) for i = 3:5]"
+seed = "using Random; rand(MersenneTwister(2), 1:10^10, 30)"
+AgentType = ["DQN"]
