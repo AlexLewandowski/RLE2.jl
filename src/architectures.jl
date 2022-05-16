@@ -251,35 +251,6 @@ function rnn(
     return m
 end
 
-function episode_encoder(
-    a_dim,
-    s_dim,
-    mem_dim = 32;
-    num_recurrent_layers = 0,
-    recurrence = RNN,
-    σ = relu,
-    seed = nothing,
-)
-    # encoder = (ep) -> begin for exp in ep
-    #         rnn
-    # end
-
-    if seed !== nothing
-        initW = (i) -> (x, y) -> glorot_uniform(MersenneTwister(seed + i), x, y)
-    else
-        initW = (i) -> glorot_uniform
-    end
-
-    layers = []
-    push!(layers, recurrence(in_dim, mem_dim, init = initW(0)))
-    for i = 1:num_recurrent_layers
-        push!(layers, recurrence(mem_dim, mem_dim, init = initW(i)))
-    end
-    m = Chain(layers...)
-    Flux.testmode!(m, true)
-    return m
-end
-
 function mha(
     in_dim,
     out_dim,
@@ -430,7 +401,6 @@ function transformer_decoder(
 
     return Chain(layers...)
 end
-
 
 function meta_state_encoder(ins, outs, embed_dim, seed; aux_dim = 0, aux_embed_dim = 32, σ = Flux.relu, pooling_f = :max)
     @assert length(ins) == length(outs)
