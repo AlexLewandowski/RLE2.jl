@@ -8,7 +8,9 @@ cd ~/.julia/dev/RLE2/
 git submodule update --init --recursive
 
 julia
+```
 
+``` julia
 using Pkg
 Pkg.activate(".")
 Pkg.instantiate()
