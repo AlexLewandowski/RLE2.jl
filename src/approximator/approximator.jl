@@ -10,12 +10,17 @@ abstract type AbstractNamed end
 
 include("tabular.jl")
 include("neuralnet.jl")
-include("architectures.jl")
 
 ##
-## Specialize NN Architectures
+## Specialized NN Modules
 ##
 
 include("PVN.jl")
 include("attention.jl")
 include("PE.jl")
+
+##
+## Neural Network Architecture Constructors
+##
+
+include("architectures.jl")

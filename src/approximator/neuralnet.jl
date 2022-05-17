@@ -1,3 +1,5 @@
+import Flux: Chain
+
 abstract type AbstractNeuralNetwork <: AbstractApproximator end
 
 mutable struct NeuralNetwork{A} <: AbstractNeuralNetwork
