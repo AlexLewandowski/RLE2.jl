@@ -20,6 +20,7 @@ abstract type AbstractSubagent end
 
 include("distributions.jl")
 
+export feed_forward, lstm_model, rnn_model
 include("approximator/approximator.jl")
 
 export RNNActionValue, Policy, PersistActionValue
@@ -43,8 +44,6 @@ include("objective/training.jl")
 export push_dict!
 include("utils.jl")
 
-export feed_forward, lstm_model, rnn_model
-include("architectures.jl")
 
 export calculate_and_log_metrics, calculate_metrics
 export counterfactual, rollout_returns, stable_rank, mean_weights
