@@ -2,37 +2,6 @@ include("objective_utils.jl")
 include("classic_objectives.jl")
 include("regularizers.jl")
 
-function onpolicy_training(agent, buffer::AbstractBuffer, step, num_training_eps = 4;)
-    if step % num_training_eps == 0
-        train_loop(agent, buffer)
-        reset_experience!(buffer)
-    end
-end
-
-function train_subagents(
-    agent;
-    buffer = nothing,
-    eval_loss = nothing,
-    num_grad_steps = nothing,
-    training = true,
-    batch_size = nothing,
-)
-    for subagent in agent.subagents
-        train_subagent(
-            agent,
-            subagent,
-            buffer,
-            eval_loss,
-            num_grad_steps,
-            training,
-            batch_size,
-        )
-        if mod(subagent.update_count, subagent.update_freq) == 0
-            update_submodel!(subagent, "state_encoder"; new_ps = get_params(agent.state_encoder))
-        end
-    end
-end
-
 function get_grads(subagent, buffer, eval_loss, state_encoder, action_encoder, reg)
     data = get_batch(buffer, subagent)
     grads = gradient(subagent.params) do
@@ -46,88 +15,39 @@ function train_subagent(
     buffer,
     state_encoder,
     action_encoder;
-    eval_loss = nothing,
     num_grad_steps = nothing,
     training = true,
     batch_size = nothing,
     reg = false,
-    ind_range = nothing,
 )
-    if eval_loss === nothing
-        eval_loss = subagent.loss
-    end
 
     if num_grad_steps === nothing
         num_grad_steps = subagent.num_grad_steps
     end
 
     for _ = 1:num_grad_steps
-        if subagent.target.sp_network == nothing
+        if subagent.target.sp_network == nothing #TODO handling of bootstrap / MC
             bootstrap = false
         else
             bootstrap = true
         end
-        # StatsBase.sample(buffer, batch_size = batch_size, bootstrap = bootstrap, ind_range = ind_range)
+
         StatsBase.sample(buffer, batch_size = batch_size, bootstrap = bootstrap)
-        if typeof(state_encoder) <: SequenceNeuralNetwork
-            # update_hidden_states(buffer, subagent.gamma, subagent.device, action_encoder, state_encoder)
-            # data = get_batch(buffer, subagent.gamma, subagent.device, action_encoder)
-            # println("inds: ", buffer._indicies)
-            # println("H pre: ", sum(data[2][1:64,:,:]))
-            # println("dat pre: ", sum(data[2][129:end,:,:]))
 
-            # if typeof(state_encoder.f[1][1]) <: Flux.Recur
-            #     update_hidden_states(buffer, subagent.gamma, subagent.device, action_encoder, state_encoder, subagent.submodels.state_encoder)
-            # end
-
-            # data = get_batch(buffer, subagent.gamma, subagent.device, action_encoder)
-            # println("inds: ", buffer._indicies)
-            # println("H post: ", sum(data[2][1:64,:,:]))
-            # println("dat post: ", sum(data[2][129:end,:,:]))
-            # init_hidden_states(buffer, subagent.gamma, subagent.device, action_encoder, state_encoder)
-        end
-
-        # b2 = deepcopy(buffer)
-        # update_hidden_states(buffer, subagent.gamma, subagent.device, action_encoder, state_encoder)
-        # inds = buffer._indicies
-
-        # init_hidden_states(b2, subagent.gamma, subagent.device, action_encoder, state_encoder)
-        # err = 0f0
-        # for ind in inds
-        #     x = ind[1]
-        #     y = ind[2]
-        #     b2t = sum(b2._episodes[x][y].sp[1:26])
-        #     bt = sum(buffer._episodes[x][y].sp[1:26])
-
-        #     err += (b2t - bt)^2
-        # end
-        # println(err/length(inds))
-
-        learner = subagent.model
-        if training
-            # TODO Training only or anytime sample?
-            if mod(subagent.update_count, subagent.train_freq) == 0
-                if typeof(subagent.model.f) <: Tabular
-                    tabular_learning(subagent, buffer, eval_loss, state_encoder, action_encoder)
-                else
-                    grads = get_grads(subagent, buffer, eval_loss, state_encoder, action_encoder, reg)
-                    update!(subagent, grads)
-                end
+        if mod(subagent.update_count, subagent.train_freq) == 0
+            if typeof(subagent.model.f) <: Tabular
+                tabular_learning(subagent, buffer)
+            else
+                grads = get_grads(subagent, buffer, subagent.loss, state_encoder, action_encoder, reg)
+                update!(subagent, grads)
             end
-            subagent.update_count += 1
-            callback(subagent)
-        else
-            data = get_batch(buffer, subagent)
-            loss =
-                mean(minibatch_loss(subagent, data, eval_loss, state_encoder, action_encoder))
-            name = ["loss_" * subagent.name * "_" * (typeof(buffer) <: Vector ? buffer[1].name : buffer.name)]
-            update_count = subagent.update_count
-            return loss, name, update_count
         end
+        subagent.update_count += 1
+        callback(subagent)
     end
 end
 
-function tabular_learning(subagent, exp)
+function tabular_learning(subagent::AbstractSubagent, exp::Experience)
     o = exp.o
     op = exp.op
     a = exp.a[1]
@@ -145,7 +65,7 @@ function tabular_learning(subagent, exp)
     nothing
 end
 
-function tabular_learning(subagent, buffer, eval_loss, state_encoder, action_encoder)
+function tabular_learning(subagent::AbstractSubagent, buffer)
     #L = minibatch_loss(subagent, buffer, eval_loss, state_encoder, action_encoder, reg = reg)
     B = size(buffer._s_batch)[end]
     s, o, a, p, r, sp, op, done, info  = get_batch(buffer)
@@ -261,108 +181,4 @@ function minibatch_loss(
     # end
     Flux.testmode!(learner.f.f)
     return loss_total / Float32(T)
-end
-
-# function minibatch_loss(
-#     subagent::Subagent{P},
-#     buffer::TransitionReplayBuffer,
-#     loss,
-#     state_encoder,
-#     action_encoder;
-#     print = false,
-# ) where {P<:RNNPlanner}
-#     learner = subagent.model
-
-#     reset_model!(learner)
-#     # _, ob, a, p, r, _, obp, done, info  = get_batch(buffer)
-
-#     # ob  = ob |> subagent.device
-#     # obp = obp |> subagent.device
-#     # # ob, obp = stop_gradient() do
-#     # #     state_encoder(ob), state_encoder(obp)
-#     # # end
-
-#     # done = done |> subagent.device
-
-#     # mask = stop_gradient() do
-#     #     action_encoder(a) |> subagent.device
-#     # end
-
-#     # discounted_reward_sum = stop_gradient() do
-#     #     nstep_returns(subagent, r, all = true)
-#     # end
-
-#     loss_total = []
-
-#     # M = size(r)[3]
-#     # T = size(r)[2]
-
-
-
-#     episode_inds = stop_gradient() do
-#         sample_episodes(buffer)
-#     end
-
-#     for ind in episode_inds
-#         ep = buffer._episodes[ind]
-#         o = stop_gradient() do
-#             [exp.o for exp in ep]
-#         end
-
-#         r = stop_gradient() do
-#             [exp.r for exp in ep]
-#         end
-
-#         a = stop_gradient() do
-#             [exp.a[1] for exp in ep]
-#         end
-
-#         mask = stop_gradient() do
-#             action_encoder(a) #|> subagent.device
-#         end
-
-#         T = length(o)
-
-#         time_loss = 0.0f0
-#         init_memory(learner, reshape(o[1], (:, 1)))
-#         for t = 1:T
-#             r_est = unroll(learner, mask[:, t])[1]
-#             if loss == absolute
-#                 time_loss += (r_est - r[t])
-#             else
-#                 time_loss += (r_est - r[t])^2
-#             end
-#         end
-
-#         if loss == absolute
-#             push!(loss_total, abs(time_loss) / T)
-#         else
-#             push!(loss_total, time_loss / T)
-#         end
-
-#     end
-
-#     return loss_total
-#     # for t = 1:T
-#     #     o_t = ob[:, t, :]
-#     #     if t == 1
-#     #         init_memory(learner, o_t)
-#     #     end
-#     #     a_t = a[:, t, :]
-#     #     p_t = reshape(p[:, t, :], :)
-#     #     r_t = reshape(discounted_reward_sum[:, t, :],:)
-#     #     op_t = obp[:, t, :]
-#     #     done_t = reshape(done[:, t, :],:)
-#     #     mask_t = mask[:, t, :]
-
-#     #     target = subagent.target.func(subagent, o_t, mask_t, r_t, op_t, done_t, T, t)
-#     #     unroll(learner, mask_t)
-
-#     #     loss_total += loss(estimate, target)
-#     # end
-#     # return loss_total / Float32(M * T)
-# end
-
-function dual(A::AbstractAgent, buffer::AbstractBuffer, loss)
-
 end

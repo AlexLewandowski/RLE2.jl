@@ -299,14 +299,13 @@ function counterfactual(
     return [counterfactual / num_evals, factual / num_evals]
 end
 
-function buffer_loss(agent, env = nothing; num_evals = 100)
+function buffer_loss(agent::AbstractAgent, env = nothing; num_evals = 100)
     list = collect(Iterators.product(agent.subagents, agent.buffers)) |> vec
     return apply_to_list(
-        train_subagent,
+        buffer_loss,
         list,
-        agent.state_encoder,
-        agent.action_encoder,
-        training = false,
+        state_encoder = agent.state_encoder,
+        action_encoder = agent.action_encoder,
     )
 end
 

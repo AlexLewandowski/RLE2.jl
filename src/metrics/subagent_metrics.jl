@@ -68,6 +68,22 @@ function estimate_value(
     return [vals / num_evals]
 end
 
+function buffer_loss(subagent::AbstractSubagent, buffer; state_encoder, action_encoder)
+    data = nothing
+    try
+        data = get_batch(buffer, subagent)
+    catch
+        StatsBase.sample(buffer)
+        data = get_batch(buffer, subagent)
+    end
+
+    loss =
+        mean(minibatch_loss(subagent, data, subagent.loss, state_encoder, action_encoder))
+    name = ["loss_" * subagent.name * "_" * (typeof(buffer) <: Vector ? buffer[1].name : buffer.name)]
+    update_count = subagent.update_count
+    return loss, name, update_count
+end
+
 function td_start_loss(subagent::AbstractSubagent, buffer, action_encoder;) end
 
 function td_start_loss(subagent::Subagent{P}, buffer; action_encoder, kwargs...) where {P<:Value}
