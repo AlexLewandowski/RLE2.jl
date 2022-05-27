@@ -2,9 +2,9 @@ function get_agent(
     AgentType::String,
     buffers::NamedTuple,
     env,
-    metric_freq::Int64,
+    measurement_freq::Int64,
     max_agent_steps::Int64,
-    list_of_cbs::AbstractArray,
+    measurement_funcs::AbstractArray,
     gamma::Float32,
     update_freq::Int64,
     update_cache::Int64,
@@ -34,8 +34,6 @@ function get_agent(
 
     obs = get_obs(env)
     other_params = [nothing]
-
-    init_policy = :random
 
     state_encoder = NeuralNetwork(Chain(identity))
     encode_dim = Int(floor(hidden_size / 4))
@@ -141,7 +139,7 @@ function get_agent(
         drop_rate,
         seed,
         tabular,
-        (memory_size = 32, planning_algo = [random_plan, [0.0f0]], env = env),
+        NamedTuple(),
     )
 
 
@@ -158,7 +156,6 @@ function get_agent(
 
 
     if AgentType == "BehaviorCloning"
-        init_policy = :optimal
         model = get_model("Policy", model_params)
         bc_target = (s_network = nothing, sp_network = nothing, func = act_target)
         subagent = Subagent(
@@ -212,7 +209,7 @@ function get_agent(
 
         π_b = model
 
-    elseif split(AgentType, "_")[1] == "DoubleDQN"
+    elseif AgentType == "DoubleDQN"
         model = get_model("ActionValue", model_params)
         submodels = merge(
             submodels,
@@ -631,21 +628,20 @@ function get_agent(
     agent = Agent(
         subagents,
         buffers,
-        π_b,
-        init_policy,
         state_encoder,
         action_encoder,
-        metric_freq,
-        0,
+        π_b,
         max_agent_steps,
-        list_of_cbs,
+        measurement_freq,
+        0,
+        measurement_funcs,
         Dict(),
         device,
         rng,
         AgentType,
     )
 
-    to_device(agent, agent.device)
+    to_device!(agent, agent.device)
 
     return agent
 end

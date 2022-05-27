@@ -263,42 +263,6 @@ function counterfactual(
     return [counterfactual / num_evals, factual / num_evals]
 end
 
-function counterfactual(
-    agent::RNNPlanner,
-    env,
-    buffer::TransitionReplayBuffer,
-    loss,
-    num_evals = 10,
-)
-    counterfactual = 0.0f0
-    factual = 0.0f0
-    for _ = 1:num_evals
-        StatsBase.sample(buffer)
-        s_s, o, a_s, p, r, sp, op, done, info = get_batch(buffer)
-
-        for i = 1:buffer.batch_size
-            a_env, a_plan = gen_action_seq(agent.π)
-
-            qhat = eval_plan(agent.π, s_s[:, 1, i], a_plan)[1]
-            # TODO evaluating the plan is not strictly correct Need to be able
-            # to evaluate the policy!! This requires access to the enviornment
-            # and simeultaneous rollout
-            q = eval_plan(env, s_s[:, 1, i], a_env)
-
-            counterfactual += abs(qhat - q) / buffer.batch_size
-
-            a_env = reshape(a_s[:, :, i], :)
-            a_plan = get_mask(agent.π, a_env)
-
-            qhat = eval_plan(agent.π, s_s[:, 1, i], a_plan)[1]
-            q = eval_plan(env, s_s[:, 1, i], a_env)
-
-            factual += abs(qhat - q) / buffer.batch_size
-        end
-    end
-    return [counterfactual / num_evals, factual / num_evals]
-end
-
 function buffer_loss(agent::AbstractAgent, env = nothing; num_evals = 100)
     list = collect(Iterators.product(agent.subagents, agent.buffers)) |> vec
     return apply_to_list(

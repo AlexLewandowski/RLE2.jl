@@ -256,25 +256,6 @@ function mc_buffer_loss(
     return [mean(result)], n
 end
 
-function mc_buffer_loss(subagent::Subagent{P}, buffer; kwargs...) where {P<:RNNPlanner} #TODO what is this
-    eval_loss = absolute
-    total = 0.0
-    idxs = buffer._episode_lengths .!== 0
-    idxs[buffer._buffer_idx] = 0
-    episodes = buffer._episodes[idxs]
-    N = length(episodes)
-    for episode in episodes
-        s = episode[1].s |> subagent.device |> state_encoder
-        G = sum([exp.r for exp in episode]) |> subagent.device
-        as = action_encoder([exp.a[1] for exp in episode])
-        estimate = eval_plan(subagent.model, s, as)[1]
-        result = eval_loss(estimate, G)
-        total += result
-    end
-    n = ["mc_loss_" * subagent.name * "_" * (typeof(buffer) <: Vector ? buffer[1].name : buffer.name)]
-    return [total / N], n
-end
-
 function mc_start_loss(subagent::AbstractSubagent, buffer, action_encoder;) end
 
 function mc_start_loss(subagent::Subagent{P}, buffer; action_encoder, state_encoder, kwargs...) where {P<:ActionValue}

@@ -106,8 +106,8 @@ A = feed_forward(ns, na, hidden_size, num_hidden_layers = num_layers)
 buffers = (train_buffer = train_buffer, test_buffer = test_buffer)
 
 force = nothing
-metric_freq = 1
-list_of_cbs = [rollout_returns, buffer_loss]
+measurement_freq = 1
+measurement_funcs = [rollout_returns, buffer_loss]
 update_freq = 2
 update_cache = 1
 num_grad_steps = 1
@@ -118,9 +118,9 @@ agents = []
 shorter_get_agent = x -> RLE2.get_agent(x,
                                               buffers,
                                               env,
-                                              metric_freq,
+                                              measurement_freq,
                                               max_agent_steps,
-                                              list_of_cbs,
+                                              measurement_funcs,
                                               gamma,
                                               update_freq,
                                               update_cache,

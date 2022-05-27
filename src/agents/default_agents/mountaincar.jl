@@ -1,7 +1,7 @@
 function get_agent(env::MountainCarEnv)
-    metric_freq = 10000
+    measurement_freq = 10000
     max_agent_steps = 199 #IMPORTANT
-    list_of_cbs = []
+    measurement_funcs = []
     gamma = 0.99f0
     update_freq = 4
     update_cache = 0
@@ -45,9 +45,9 @@ function get_agent(env::MountainCarEnv)
     agent = get_agent("DQN",
                       buffers,
                       env,
-                      metric_freq,
+                      measurement_freq,
                       max_agent_steps,
-                      list_of_cbs,
+                      measurement_funcs,
                       gamma,
                       update_freq,
                       update_cache,

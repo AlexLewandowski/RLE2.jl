@@ -45,6 +45,11 @@ forward(f::NeuralNetwork{<:AbstractChain}, x; kwargs...) = f.f(x)
 forward(f::NeuralNetwork{<:AbstractNamed}, x, head::Symbol; kwargs...) = getfield(f.f, head)(x)
 forward(f::NeuralNetwork{<:AbstractNamed}, head::Symbol; kwargs...) = getfield(f.f, head)
 
+function to_device!(NN::AbstractNeuralNetwork, device)
+    NN.f = NN.f |> device
+    NN.params = Flux.params(NN.f)
+end
+
 function layers(NN::NeuralNetwork)
     return NN.f.layers
 end

@@ -200,7 +200,7 @@ function OptEnv(
     y_test = nothing
     fstar = nothing
     f = init_nn(in_dim, out_dim, h_dim, activation, num_layers, rng, device, dataset_name)
-    to_device(f, device)
+    to_device!(f, device)
 
     if continuous
         action_space =
@@ -282,7 +282,7 @@ function OptEnv(
     return env
 end
 
-function to_device(env::AbstractOptEnv, device)
+function to_device!(env::AbstractOptEnv, device)
     env.device = device
 
     env.x = env.x |> env.device
@@ -290,7 +290,7 @@ function to_device(env::AbstractOptEnv, device)
     env.x_test = env.x_test |> env.device
     env.y_test = env.y_test |> env.device
 
-    to_device(env.f, env.device)
+    to_device!(env.f, env.device)
 end
 
 function init_nn(env)
@@ -358,7 +358,7 @@ function init_nn(
         )
     end
     # f = NeuralNetwork(LeNet5())
-    to_device(f, device)
+    to_device!(f, device)
     return f
 end
 
@@ -406,7 +406,7 @@ function get_data(
             ),
         )
 
-        to_device(fstar, device)
+        to_device!(fstar, device)
         if device == Flux.gpu
             x = CUDA.randn(Float32, (in_dim, data_size))
         else
@@ -1033,7 +1033,7 @@ function reset!(
     end
 
     env.f = f
-    to_device(env.f, device)
+    to_device!(env.f, device)
 
     if !isnothing(agent)
         optimize_student(env, agent)
@@ -1589,36 +1589,6 @@ function optimize_student(
     else
         report_freq = 10
     end
-
-    ###
-    ### LBFGS
-    ###
-    # old_env_device = env.device
-    # old_agent_device = agent.device
-    # to_device(env, Flux.cpu)
-    # to_device(agent, Flux.cpu)
-
-    # init_data!(
-    #     env,
-    #     data_size,
-    #     in_dim,
-    #     out_dim,
-    #     h_dim,
-    #     num_layers;
-    #     rng = rng,
-    #     device = env.device,
-    # )
-
-    # loss() =  -sum(agent.subagents[1](RLE2.get_next_obs_with_f(env, f) |> agent.device))
-    # pars = Flux.params(f.f)
-    # lossfun, gradfun, fg!, p0 = optfuns(loss, pars)
-    # res = Optim.optimize(Optim.only_fg!(fg!), p0, LBFGS(), Optim.Options(iterations=10000, store_trace=true))
-    # println(res)
-    # to_device(env, old_env_device)
-    # to_device(agent, old_agent_device)
-    ###
-    ### LBFGS
-    ###
 
     for i = 1:n_steps
 

@@ -7,14 +7,14 @@ function calculate_metrics(
     agent::AbstractAgent,
     env::AbstractEnv,
 )
-    calculate_metrics(agent, env, agent.list_of_cbs, "")
+    calculate_metrics(agent, env, agent.measurement_funcs, "")
 end
 
 
 function calculate_metrics(
     agent::AbstractAgent,
     env::AbstractEnv,
-    list_of_cbs,
+    measurement_funcs,
     path = nothing;
 )
     # if path !== nothing
@@ -23,11 +23,11 @@ function calculate_metrics(
 
     old_device = agent.device
     agent.device = Flux.cpu
-    # to_device(agent.π_b, agent.device)
-    to_device(agent, agent.device)
+    # to_device!(agent.π_b, agent.device)
+    to_device!(agent, agent.device)
 
     results_tuple = []
-    for f in list_of_cbs
+    for f in measurement_funcs
         reset_model!(agent.state_encoder, :zeros)
         result_tuple = f(agent, env)
         if result_tuple !== nothing
@@ -49,21 +49,21 @@ function calculate_metrics(
     println()
 
     agent.device = old_device
-    # to_device(agent.π_b, agent.device)
-    to_device(agent, agent.device)
+    # to_device!(agent.π_b, agent.device)
+    to_device!(agent, agent.device)
     return results_tuple
 end
 
-function log_metrics(results_tuple, cb_dict, count; init = false)
+function log_metrics(results_tuple, measurement_dict, count; init = false)
     # if init
     #     for result_tuple in results_tuple
     #         for (result, name) in result_tuple
     #             if name === nothing
     #             else
     #                 result = (result, count)
-    #                 cb_dict[name] = zeros(Float32, init)
-    #                 cb_dict[name][count] = result
-    #                 # push_dict!(cb_dict, name, result)
+    #                 measurement_dict[name] = zeros(Float32, init)
+    #                 measurement_dict[name][count] = result
+    #                 # push_dict!(measurement_dict, name, result)
     #             end
     #         end
     #     end
@@ -73,7 +73,7 @@ function log_metrics(results_tuple, cb_dict, count; init = false)
             if name === nothing
             else
                 result = (result, count)
-                push_dict!(cb_dict, name, result)
+                push_dict!(measurement_dict, name, result)
             end
         end
     end
@@ -83,27 +83,27 @@ end
 function calculate_and_log_metrics(
     agent::AbstractAgent,
     env::AbstractEnv,
-    list_of_cbs = nothing,
-    cb_dict = nothing,
+    measurement_funcs = nothing,
+    measurement_dict = nothing,
     path = nothing;
     force = false,
     init = false,
 )
-    if cb_dict === nothing
-        cb_dict = agent.cb_dict
+    if measurement_dict === nothing
+        measurement_dict = agent.measurement_dict
     end
-    if Base.mod(agent.metric_count, agent.metric_freq) == 0 || force == true
-        println("Agent metric_count is: ", agent.metric_count)
+    if Base.mod(agent.measurement_count, agent.measurement_freq) == 0 || force == true
+        println("Agent measurement_count is: ", agent.measurement_count)
         flush(stdout)
-        results_tuple = calculate_metrics(agent, env, list_of_cbs, path)
-        log_metrics(results_tuple, cb_dict, agent.metric_count, init = true)
+        results_tuple = calculate_metrics(agent, env, measurement_funcs, path)
+        log_metrics(results_tuple, measurement_dict, agent.measurement_count, init = true)
     else
-        if online_returns in list_of_cbs
+        if online_returns in measurement_funcs
             results_tuple = calculate_metrics(agent, env, [online_returns], path)
-            log_metrics(results_tuple, cb_dict, agent.metric_count)
+            log_metrics(results_tuple, measurement_dict, agent.measurement_count)
         end
     end
-    agent.metric_count += 1
+    agent.measurement_count += 1
     return nothing
 end
 

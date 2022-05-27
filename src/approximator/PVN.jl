@@ -45,7 +45,7 @@ function PVN(f::Union{Chain, NamedTuple}, re, input_dim; init = glorot_uniform, 
     return PVN{Chain}(f, re, inputs)
 end
 
-function to_device(f::AbstractPVN, device)
+function to_device!(f::AbstractPVN, device)
     f.inputs = f.inputs |> device
     f.f = f.f |> device
 end

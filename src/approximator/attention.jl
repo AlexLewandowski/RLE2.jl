@@ -48,7 +48,7 @@ mutable struct SetAttention{W<:AbstractMatrix} <: AbstractNeuralNetwork
     WV::W
 end
 
-function to_device(NN::SetAttention, device)
+function to_device!(NN::SetAttention, device)
     NN.Q = NN.Q |> device
     NN.WK = NN.WK |> device
     NN.WV = NN.WV |> device
@@ -105,7 +105,7 @@ mutable struct MultiHeadAttention <: AbstractNeuralNetwork
     WO::Flux.Dense
 end
 
-function to_device(NN::MultiHeadAttention, device)
+function to_device!(NN::MultiHeadAttention, device)
     for A in NN.As
         A = A |> device
     end

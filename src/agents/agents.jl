@@ -14,77 +14,35 @@ Examples of submodels can include a target network. """
 mutable struct Agent <: AbstractAgent
     subagents::AbstractArray{Subagent,1}
     buffers::Union{NamedTuple,Nothing}
-    π_b#::Union{AbstractModel,Symbol,Function}
-    init_policy#::Union{AbstractModel,Symbol,Function}
     state_encoder#::Union{AbstractModel,Symbol,Function}
     action_encoder#::Union{AbstractModel,Symbol,Function}
-    metric_freq::Int64
-    metric_count::Int64
+    π_b#::Union{AbstractModel,Symbol,Function}
     max_agent_steps::Int64
-    list_of_cbs::AbstractArray
-    cb_dict::Dict
+    measurement_freq::Int64
+    measurement_count::Int64
+    measurement_funcs::AbstractArray
+    measurement_dict::Dict
     device::Union{typeof(gpu),typeof(cpu)}
     rng::AbstractRNG
     name::String
 end
 
-function to_device(agent::AbstractAgent, device = :default)
+function to_device!(agent::AbstractAgent, device = :default)
     if device == :default
         device = agent.device
     end
-    to_device(agent.state_encoder, device)
-    to_device(agent.action_encoder, device)
+    to_device!(agent.state_encoder, device)
+    to_device!(agent.action_encoder, device)
     for subagent in agent.subagents
-        to_device(subagent, device)
+        to_device!(subagent, device)
     end
     agent.device = device
     nothing
 end
 
-function to_device(subagent::AbstractSubagent, device = :default)
-    if device == :default
-        device = subagent.device
-    end
-    old_ps = subagent.params
-    to_device(subagent.model, device)
-    for submodel in subagent.submodels
-        to_device(submodel, device)
-    end
-    for submodel in subagent.target_submodels
-        to_device(submodel, device)
-    end
-    new_ps = Flux.params(get_params(subagent.model)..., Flux.params(subagent.submodels.state_encoder)...) #TODO: How to incoporate other pararms
-
-    subagent.params = new_ps
-
-    old_opt = subagent.optimizer
-    if !isempty(old_opt.state)
-        old_opt.state = IdDict(new_p => (device(old_opt.state[old_p][1]), device(old_opt.state[old_p][2]), old_opt.state[old_p][3])  for (new_p, old_p) in zip(new_ps, old_ps))
-    end
-
-    subagent.device = device
-    nothing
+function to_device!(f, device = :default)
+    @debug "Not sending to device for device: "*string(typeof(f))
 end
-
-function to_device(f::Nothing, device = :default)
-end
-
-function to_device(model::AbstractModel, device)
-    model.f.f = model.f.f |> device
-end
-
-function to_device(NN::AbstractNeuralNetwork, device)
-    NN.f = NN.f |> device
-    NN.params = Flux.params(NN.f)
-end
-
-
-function to_device(model::Chain, device = :default)
-end
-
-function to_device(model::Function, device = :default)
-end
-
 
 function remove_undefs(buffer::AbstractBuffer)
     num_buffer_eps = get_num_episodes(buffer)
@@ -126,7 +84,7 @@ end
 
 function save_agent(agent, path = "", name = "")
     remove_undefs(agent)
-    to_device(agent, Flux.cpu)
+    to_device!(agent, Flux.cpu)
     my_save_dict = Dict(:agent => agent)
     open(joinpath(path, name * "agent.bson.zstd"), "w") do fd
         stream = CodecZstd.ZstdCompressorStream(fd)
@@ -145,7 +103,7 @@ function load_agent(path = "", name = "")
     end
     println(load_dict)
     agent = load_dict[:my_save_dict][:agent]
-    to_device(agent)
+    to_device!(agent)
     undo_remove_undefs(agent)
     return agent
 end
@@ -164,8 +122,8 @@ Base.show(io::IO, a::Agent) = begin
     print("Buffers: ")
     [println(io, buffer) for buffer in keys(a.buffers) if !isnothing(a.buffers[buffer])]
     println("π_b: ", typeof(a.π_b).name)
-    println("metric_freq: ", a.metric_freq)
-    println("metric_count: ", a.metric_count)
+    println("measurement_freq: ", a.measurement_freq)
+    println("measurement_count: ", a.measurement_count)
     println("max_agent_steps: ", a.max_agent_steps)
     println("---------------------------")
 end

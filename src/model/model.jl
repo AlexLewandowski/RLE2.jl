@@ -34,19 +34,22 @@ end
 
 include("value.jl")
 include("action_value.jl")
-include("env_value.jl")
-include("policy_action_value.jl")
+# include("policy_action_value.jl")
 include("policy.jl")
-include("persist.jl")
-include("rnn.jl")
-include("rnnplanner.jl")
-include("meta_state_encoder.jl")
+# include("persist.jl")
+# include("rnn.jl")
+# include("rnnplanner.jl")
+# include("meta_state_encoder.jl")
 include("model_zoo.jl")
 
 Base.show(io::IO, m::AbstractModel) = begin
     # print(io, string(typeof(m).name)[10:end-1])
     print(io, typeof(m))
     # println(io,  m.f)
+end
+
+function to_device!(model::AbstractModel, device)
+    model.f.f = model.f.f |> device
 end
 
 function representation(model::AbstractModel, s)

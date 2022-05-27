@@ -10,54 +10,53 @@ using Flux.Optimise: ADAM, RMSProp, Optimiser, ExpDecay
 
 include("helper_functions.jl")
 
-function run_experiment(parsed::Dict; test = false)
+function run_experiment(config::Dict; test = false)
     if !test
-        create_info!(parsed, parsed["save_dir"])
+        create_info!(config, config["save_dir"])
     end
 
-    seed = parsed["seed"]
+    seed = config["seed"]
 
-    num_grad_steps = parsed["num_grad_steps"]
-    num_env_steps = parsed["num_grad_steps"]
-    num_episodes = parsed["num_episodes"]
-    max_num_episodes = parsed["max_num_episodes"]
-    max_episode_length = parsed["max_episode_length"]
+    num_grad_steps = config["num_grad_steps"]
+    num_env_steps = config["num_grad_steps"]
+    num_episodes = config["num_episodes"]
+    max_num_episodes = config["max_num_episodes"]
+    max_episode_length = config["max_episode_length"]
 
-    init_policy = Symbol(parsed["init_policy"])
-    init_num_episodes = parsed["init_num_episodes"]
+    init_policy = Symbol(config["init_policy"])
+    init_num_episodes = config["init_num_episodes"]
 
-    predict_window = parsed["predict_window"]
-    history_window = parsed["history_window"]
+    predict_window = config["predict_window"]
+    history_window = config["history_window"]
 
-    hidden_size = parsed["hidden_size"]
-    num_layers = parsed["num_layers"]
-    activation = getfield(Flux, Symbol(parsed["activation"]))
+    hidden_size = config["hidden_size"]
+    num_layers = config["num_layers"]
+    activation = getfield(Flux, Symbol(config["activation"]))
 
-    update_freq = parsed["update_freq"]
+    update_freq = config["update_freq"]
 
-    overlap = parsed["overlap"]
-    gamma = Float32(parsed["gamma"])
+    overlap = config["overlap"]
+    gamma = Float32(config["gamma"])
 
-    AgentType = parsed["AgentType"]
-    EnvType = parsed["EnvType"]
+    AgentType = config["AgentType"]
+    EnvType = config["EnvType"]
 
-    optimizer = getfield(Flux.Optimise, Symbol(parsed["optimizer"]))
-    lr = parsed["lr"]
-    batch_size = parsed["batch_size"]
+    optimizer = getfield(Flux.Optimise, Symbol(config["optimizer"]))
+    lr = config["lr"]
+    batch_size = config["batch_size"]
 
-    force = Symbol(parsed["force"])
+    force = Symbol(config["force"])
 
-    gpu = parsed["gpu"]
+    gpu = config["gpu"]
 
     # Need better way to specify optional args / specific to experiment
     state_representation = nothing
     try
-        state_representation = Symbol(parsed["state_representation"])
+        state_representation = Symbol(config["state_representation"])
     catch
     end
 
-    online_cbs = RLE2.preprocess_cb(parsed["online_cbs"])
-    offline_cbs = RLE2.preprocess_cb(parsed["offline_cbs"])
+    measurement_funcs = preprocess_list_of_funcs(config["measurement_funcs"])
 
     if gpu
         gpu_devices = collect(CUDA.devices())
@@ -110,9 +109,9 @@ function run_experiment(parsed::Dict; test = false)
         total_reports = num_episodes
     end
 
-    metric_freq = floor(Int, num_episodes / total_reports)
+    measurement_freq = floor(Int, num_episodes / total_reports)
 
-    parsed["total_reports"] = total_reports
+    config["total_reports"] = total_reports
 
     ##
     ## Agent
@@ -124,9 +123,9 @@ function run_experiment(parsed::Dict; test = false)
         AgentType,
         buffers,
         env,
-        metric_freq,
+        measurement_freq,
         max_agent_steps,
-        online_cbs,
+        measurement_funcs,
         gamma,
         update_freq,
         update_cache,
@@ -159,7 +158,7 @@ function run_experiment(parsed::Dict; test = false)
 
     return_early = false
     try
-        return_early = parsed["return_early"]
+        return_early = config["return_early"]
     catch
     end
     if return_early
@@ -172,7 +171,7 @@ function run_experiment(parsed::Dict; test = false)
     ##
 
     RLE2.reset!(env)
-    calculate_and_log_metrics(agent, env, agent.list_of_cbs, agent.cb_dict, parsed["_SAVE"])
+    calculate_and_log_metrics(agent, env, agent.measurement_funcs, agent.measurement_dict, config["_SAVE"])
 
     for i = 1:num_episodes
         RLE2.reset!(env)
@@ -196,15 +195,15 @@ function run_experiment(parsed::Dict; test = false)
         calculate_and_log_metrics(
             agent,
             env,
-            agent.list_of_cbs,
-            agent.cb_dict,
-            parsed["_SAVE"],
+            agent.measurement_funcs,
+            agent.measurement_dict,
+            config["_SAVE"],
         )
     end
 
-    online_dict = agent.cb_dict
+    measurements = agent.measurement_dict
 
-    # RLE2.save_agent(agent, joinpath(parsed["_SAVE"]))
-    JLD2.@save joinpath(parsed["_SAVE"], "data.jld2") parsed online_dict
+    JLD2.@save joinpath(config["_SAVE"], "data.jld2") config measurements
+
     return agent, env
 end

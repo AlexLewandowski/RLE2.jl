@@ -1,8 +1,8 @@
 function get_agent(env::AbstractMDP)
     tabular = is_tabular(env)
-    metric_freq = 10000
+    measurement_freq = 10000
     max_agent_steps = 10 #IMPORTANT
-    list_of_cbs = []
+    measurement_funcs = []
     gamma = 0.99f0
     update_freq = tabular ? 0 : 4
     update_cache = 0
@@ -40,9 +40,9 @@ function get_agent(env::AbstractMDP)
     agent = get_agent("DQN",
                       buffers,
                       env,
-                      metric_freq,
+                      measurement_freq,
                       max_agent_steps,
-                      list_of_cbs,
+                      measurement_funcs,
                       gamma,
                       update_freq,
                       update_cache,

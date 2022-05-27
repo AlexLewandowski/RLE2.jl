@@ -21,7 +21,7 @@ EnvType = "CartPole"
 hidden_size = 64
 num_layers = 2
 activation = "relu"
-update_freq = 10
+update_freq = 100
 gamma = 0.99
 overlap = true
 optimizer = "ADAM"
@@ -29,14 +29,11 @@ batch_size = 128
 force = "nothing"
 gpu = false
 
-online_cbs = """
+measurement_funcs = """
         rollout_returns,
         buffer_loss,
         mc_buffer_loss,
         online_returns,
-"""
-
-offline_cbs = """
 """
 
 [sweep_args]

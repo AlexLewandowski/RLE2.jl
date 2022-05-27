@@ -48,8 +48,6 @@ function get_model(
 )
     @unpack_ModelParams model_params
 
-    memory_size = model_local.memory_size
-    planning_algo = model_local.planning_algo
 
     if ModelType == "ActionValue"
         if !tabular
@@ -240,7 +238,7 @@ function get_model(
         )
 
     elseif ModelType == "RNNPlanner"
-        @assert planning_algo !== nothing
+        @assert model_local.planning_algo !== nothing
 
         memory_dim = Int(ceil(hidden_size / 2))
         recurrence = RNN
@@ -272,7 +270,7 @@ function get_model(
             open_loop = false,
             discrete = discrete,
             action_dim = output_dim,
-            planning_algo = planning_algo,
+            planning_algo = model_local.planning_algo,
         )
     else
         error("Not a valid ModelType")

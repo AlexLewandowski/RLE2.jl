@@ -181,9 +181,6 @@ function rollout_returns(
         push!(Gs, nstep_returns(gamma, rs)[1])
         push!(lens, Float32(length(rs)))
         if !isnothing(agent)
-        if typeof(agent.subagents[1].model) <: RNNPlanner
-            aux += agent.subagents[1].model.planning_algo[2][1]
-        end
         end
     end
     returns = [mean(Gs), mean(lens), maximum(lens), minimum(lens), mean(mean_as), mean(var_as)]
@@ -204,13 +201,6 @@ function rollout_returns(
 
         # push!(names, "student_accuracy_test_min")
         # push!(returns, Float32.(minimum(accs_test)))
-    end
-
-    if !isnothing(agent)
-    if typeof(agent.subagents[1].model) <: RNNPlanner
-        push!(names, "planned_returns")
-        push!(returns, aux / num_evals)
-    end
     end
 
     return returns, names
@@ -388,7 +378,7 @@ function rollout_returns_curriculum(
         total_reports = max_steps
     end
 
-    metric_freq = floor(Int, max_steps / total_reports)
+    measurement_freq = floor(Int, max_steps / total_reports)
 
     max_steps += 1
 
@@ -455,7 +445,6 @@ function rollout_returns_nonmean(
     lens = []
     aux = 0.0f0
     for _ = 1:num_evals
-        #TODO is greedy the right thing to do?
         ep = generate_episode(
             env,
             agent,
@@ -466,16 +455,9 @@ function rollout_returns_nonmean(
         rs = reshape([exp.r for exp in ep], (1, :, 1))
         push!(Gs, nstep_returns(agent.subagents[1].gamma, rs)[1])
         push!(lens, Float32(length(rs)))
-        if typeof(agent.subagents[1].model) <: RNNPlanner
-            aux += agent.subagents[1].model.planning_algo[2][1]
-        end
     end
     returns = [Gs, lens]
     names = ["rollout_returns", "num_steps"]
 
-    if typeof(agent.subagents[1].model) <: RNNPlanner
-        push!(names, "planned_returns")
-        push!(returns, aux / num_evals)
-    end
     return returns, names
 end

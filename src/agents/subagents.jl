@@ -220,3 +220,27 @@ function nstep_returns(gamma::Float32, rs::AbstractArray{Float32,3}, all)
     return discounted_reward_sum
 end
 
+function to_device!(subagent::AbstractSubagent, device = :default)
+    if device == :default
+        device = subagent.device
+    end
+    old_ps = subagent.params
+    to_device!(subagent.model, device)
+    for submodel in subagent.submodels
+        to_device!(submodel, device)
+    end
+    for submodel in subagent.target_submodels
+        to_device!(submodel, device)
+    end
+    new_ps = Flux.params(get_params(subagent.model)..., Flux.params(subagent.submodels.state_encoder)...) #TODO: How to incoporate other pararms
+
+    subagent.params = new_ps
+
+    old_opt = subagent.optimizer
+    if !isempty(old_opt.state)
+        old_opt.state = IdDict(new_p => (device(old_opt.state[old_p][1]), device(old_opt.state[old_p][2]), old_opt.state[old_p][3])  for (new_p, old_p) in zip(new_ps, old_ps))
+    end
+
+    subagent.device = device
+    nothing
+end
