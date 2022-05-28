@@ -49,23 +49,41 @@ function run_experiment(config::Dict; test = false)
 
     gpu = config["gpu"]
 
+    kwargs_dict = Dict()
     # Need better way to specify optional args / specific to experiment
     state_representation = nothing
     try
         state_representation = Symbol(config["state_representation"])
-    catch
+    catch e
+        println(e)
     end
+
+    pooling_func = :mean
+    try
+        pooling_func = Symbol(parsed["pooling_func"])
+    catch e
+        println(e)
+    end
+    kwargs_dict[:pooling_func] = pooling_func
 
     measurement_funcs = preprocess_list_of_funcs(config["measurement_funcs"])
 
     if gpu
+        try
         gpu_devices = collect(CUDA.devices())
         num_devices = length(gpu_devices)
         gpu_ind = Base.mod1(Reproduce.myid(), num_devices)
-        println(Reproduce.myid())
-        println(gpu_devices)
-        println(gpu_ind)
+        println("Reproduce ID: ", Reproduce.myid())
+        println("Device selected: ", gpu_ind)
+        println("List of devices: ", gpu_devices)
+        Flux.device!(gpu_devices[gpu_ind])
         device = Flux.gpu
+        catch  e
+            @warn "Caught error:"
+            showerror(stdout, e)
+            println()
+            device = Flux.cpu
+        end
     else
         device = Flux.cpu
     end
@@ -119,6 +137,7 @@ function run_experiment(config::Dict; test = false)
 
     buffers = (train_buffer = train_buffer,)# test_buffer = test_buffer)
 
+    println(kwargs_dict)
     agent = RLE2.get_agent(
         AgentType,
         buffers,
@@ -141,7 +160,8 @@ function run_experiment(config::Dict; test = false)
         num_grad_steps,
         force,
         seed,
-        reg,
+        reg;
+        kwargs_dict...,
     )
 
     for buffer in buffers

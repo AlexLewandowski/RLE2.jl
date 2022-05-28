@@ -308,30 +308,6 @@ function mc_start_loss(subagent::Subagent{P}, buffer; action_encoder, state_enco
     return [total / N], n
 end
 
-function mc_start_miscal_loss(subagent::AbstractSubagent, buffer, action_encoder;) end
-
-function mc_start_miscal_loss(subagent::Subagent{P}, buffer; action_encoder, state_encoder, kwargs...) where {P<:Value}
-    total = 0.0
-    eval_loss = absolute
-    old_buffer = buffer
-    buffer = montecarlo_buffer(buffer, 0.99f0)
-    idxs = buffer._episode_lengths .!== 0
-    idxs[buffer._buffer_idx] = 0
-    episodes = buffer._episodes[idxs]
-    N = length(episodes)
-    i = 1
-    for episode in episodes
-        L = length(episode)
-        o = episode[1].o |> state_encoder
-        estimate_o = sum(subagent(o |> subagent.device))
-        target = sum([exp.r for exp in old_buffer._episodes[i]]) |> subagent.device
-        result = eval_loss(estimate_o, target)
-        total += result
-        i += 1
-    end
-    n = ["mc_start_miscal_loss_" * subagent.name * "_" * (typeof(buffer) <: Vector ? buffer[1].name : buffer.name)]
-    return [total / N], n
-end
 ##
 ## Slope of representation
 ##

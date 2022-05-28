@@ -1,6 +1,6 @@
 [config]
 save_dir="results/optenv_value/"
-exp_file="experiment/experiment_optenv.jl"
+exp_file="experiment/experiment.jl"
 exp_module_name = "Main"
 exp_func_name = "run_experiment"
 pre_exp_files = ["experiment/random_optenv_data.jl"]

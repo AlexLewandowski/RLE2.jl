@@ -273,13 +273,6 @@ function buffer_loss(agent::AbstractAgent, env = nothing; num_evals = 100)
     )
 end
 
-function mc_start_miscal_loss(agent, env; num_evals = 100)
-    list = collect(Iterators.product(agent.subagents, agent.buffers)) |> vec
-    return apply_to_list(mc_start_miscal_loss, list,
-        state_encoder = agent.state_encoder,
-        action_encoder = agent.action_encoder,)
-end
-
 function mc_start_loss(agent, env; num_evals = 100)
     list = collect(Iterators.product(agent.subagents, agent.buffers)) |> vec
     return apply_to_list(mc_start_loss, list,
