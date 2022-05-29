@@ -33,16 +33,24 @@ corruption_rate = 0.0f0
 # seed = 10101827296962
 seed = 6951693
 Random.seed!(2 * seed + 1)
-state_representation = "PEN_10"
+state_representation = "PVN_10"
+# state_representation = "PD-y_10"
 pooling_func = :mean
 recurrent_action = 0
-buffer_rng = MersenneTwister(3*seed-1)
+buffer_rng = MersenneTwister(3 * seed - 1)
 overlap = false
 
-env, max_agent_steps, embedding_f = RLE2.get_env("CartPole", skip = skip, seed = seed, max_steps = max_episode_length)
+# env, max_agent_steps, embedding_f = RLE2.get_env("CartPole", skip = skip, seed = seed, max_steps = max_episode_length)
+env, max_agent_steps, embedding_f = RLE2.get_env(
+    "OptEnv-NoLP-syntheticCluster-SGD",
+    skip = skip,
+    seed = seed,
+    max_steps = max_episode_length,
+    state_representation = state_representation,
+)
 
 ob = RLE2.get_obs(env)
-s  = RLE2.get_state(env)
+s = RLE2.get_state(env)
 
 a = RLE2.random_action(env)
 
@@ -60,7 +68,7 @@ drop_rate = 0.0f0
 
 optimizer = ADAM
 
-buffer_rng = MersenneTwister(3*seed-1)
+buffer_rng = MersenneTwister(3 * seed - 1)
 
 train_buffer = TransitionReplayBuffer(
     env,
@@ -115,39 +123,54 @@ reg = 0.1
 
 agents = []
 
-shorter_get_agent = x -> RLE2.get_agent(x,
-                                              buffers,
-                                              env,
-                                              measurement_freq,
-                                              max_agent_steps,
-                                              measurement_funcs,
-                                              gamma,
-                                              update_freq,
-                                              update_cache,
-                                              predict_window,
-                                              history_window,
-                                              num_layers,
-                                              hidden_size,
-                                              activation,
-                                              drop_rate,
-                                              optimizer,
-                                              lr,
-                                              device,
-                                              num_grad_steps,
-                                              force,
-                                              seed,
-                                              reg,
-                                              pooling_func = pooling_func
-                                              )
+shorter_get_agent =
+    x -> RLE2.get_agent(
+        x,
+        buffers,
+        env,
+        measurement_freq,
+        max_agent_steps,
+        measurement_funcs,
+        gamma,
+        update_freq,
+        update_cache,
+        predict_window,
+        history_window,
+        num_layers,
+        hidden_size,
+        activation,
+        drop_rate,
+        optimizer,
+        lr,
+        device,
+        num_grad_steps,
+        force,
+        seed,
+        reg,
+        pooling_func = pooling_func,
+    )
 
 agent = shorter_get_agent("DQN")
 push!(agents, agent)
 
-populate_replay_buffer!(train_buffer, env, agent, policy = :random, num_episodes = num_episodes, max_steps = max_agent_steps)
-populate_replay_buffer!(test_buffer, env, agent, num_episodes = num_episodes, max_steps = max_agent_steps)
+populate_replay_buffer!(
+    train_buffer,
+    env,
+    agent,
+    policy = :random,
+    num_episodes = num_episodes,
+    max_steps = max_agent_steps,
+)
+populate_replay_buffer!(
+    test_buffer,
+    env,
+    agent,
+    num_episodes = num_episodes,
+    max_steps = max_agent_steps,
+)
 
 StatsBase.sample(train_buffer)
-_, ob, a, p,     r, _, obp, done = RLE2.get_batch(train_buffer)
+_, ob, a, p, r, _, obp, done = RLE2.get_batch(train_buffer)
 data = RLE2.get_batch(train_buffer, gamma, device, x -> x)
 
 bc_agent = shorter_get_agent("BehaviorCloning")
@@ -156,29 +179,19 @@ push!(agents, bc_agent)
 qr_agent = shorter_get_agent("QRDQN10")
 push!(agents, qr_agent)
 
-ddqn_agent = shorter_get_agent(
-    "DoubleDQN",
-)
+ddqn_agent = shorter_get_agent("DoubleDQN")
 push!(agents, ddqn_agent)
 
-restd0_agent = shorter_get_agent(
-    "ResidualTD0",
-)
+restd0_agent = shorter_get_agent("ResidualTD0")
 push!(agents, restd0_agent)
 
-td0_agent = shorter_get_agent(
-    "TD0",
-)
+td0_agent = shorter_get_agent("TD0")
 push!(agents, td0_agent)
 
-mcv_agent = shorter_get_agent(
-    "MCValue",
-)
+mcv_agent = shorter_get_agent("MCValue")
 push!(agents, mcv_agent)
 
-td3_agent = shorter_get_agent(
-    "TD3",
-)
+td3_agent = shorter_get_agent("TD3")
 push!(agents, td3_agent)
 
 nothing

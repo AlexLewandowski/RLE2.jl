@@ -282,6 +282,22 @@ function OptEnv(
     return env
 end
 
+Base.show(io::IO, t::MIME"text/plain", env::OptEnv) = begin
+    println()
+    println("---------------------------")
+    name = "OptEnv"
+    L = length(name)
+    println(name)
+    println(join(["-" for i = 1:L+1]))
+
+    print(io, "  env.dataset_name: ")
+    println(io, env.dataset_name)
+
+    print(io, "  env.opt: ")
+    println(io, typeof(env.opt))
+    println("---------------------------")
+end
+
 function to_device!(env::AbstractOptEnv, device)
     env.device = device
 
@@ -1721,10 +1737,11 @@ function get_next_obs_with_f(
 
         return vcat(P, aux) |> env.device
 
-    elseif state_rep_str[1] == "PEN"
+    elseif state_rep_str[1] == "PVN"
         # Can be differentiated
         P, re = Flux.destructure(f.f)
         aux = Float32.(log(env.opt.eta))
+        aux = []
         return P
 
     elseif state_rep_str[1] == "oblivious"

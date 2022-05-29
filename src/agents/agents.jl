@@ -128,7 +128,7 @@ Base.show(io::IO, a::Agent) = begin
     println("---------------------------")
 end
 
-function train_subagents(agent, step; reg = false, buffer = nothing)
+function train_subagents(agent; reg = false, buffer = nothing)
     if isnothing(buffer)
         buffer = agent.buffers.train_buffer
     end

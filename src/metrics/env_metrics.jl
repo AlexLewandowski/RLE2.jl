@@ -322,7 +322,7 @@ function rollout_returns_optenv(
     if max_steps === nothing
         max_steps = agent.max_agent_steps
     end
-    if (contains(env.state_representation, "parameters") || contains(env.state_representation, "PEN")) &&
+    if (contains(env.state_representation, "parameters") || contains(env.state_representation, "PVN")) &&
         (mode == "narrow"  || mode == "wide")
         return zeros(Float32, max_steps), zeros(Float32, max_steps), zeros(Float32, max_steps), zeros(Float32, max_steps), zeros(Float32, max_steps), zeros(Float32, max_steps)
     end

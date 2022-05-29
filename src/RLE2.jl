@@ -23,7 +23,8 @@ include("distributions.jl")
 export feed_forward, lstm_model, rnn_model
 include("approximator/approximator.jl")
 
-export RNNActionValue, Policy, PersistActionValue
+export StateValue
+export Value, Policy, ActionValue
 include("model/model.jl")
 
 # export LQREnv

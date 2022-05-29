@@ -38,12 +38,12 @@ function get_agent(
     state_encoder = NeuralNetwork(Chain(identity))
     encode_dim = Int(floor(hidden_size / 4))
     if typeof(env) <: Union{UnionCurriculumMDP,AbstractOptEnv,MetaEnv}
-        if contains(string(env.state_representation), "ep") || contains(string(env.state_representation), "PD") || contains(string(env.state_representation), "PEN")
+        if contains(string(env.state_representation), "ep") || contains(string(env.state_representation), "PD") || contains(string(env.state_representation), "PVN")
 
-            if !contains(env.state_representation, "PEN")
-            aux_dim, s_dim, a_dim, L, T = Int.(obs[end-4:end])
+            if !contains(env.state_representation, "PVN")
+                aux_dim, s_dim, a_dim, L, T = Int.(obs[end-4:end])
             else
-                aux_dim = 1
+                aux_dim = 0
             end
 
 
@@ -58,7 +58,7 @@ function get_agent(
 
             if contains(string(env.state_representation), "buffer") || contains(string(env.state_representation), "PD")
                 As = meta_state_encoder(repeat([s_dim],L), repeat([a_dim],L), encode_dim, seed, aux_dim = aux_dim, σ = activation, pooling_f = kwargs[:pooling_func])
-            elseif contains(string(env.state_representation), "PEN")
+            elseif contains(string(env.state_representation), "PVN")
 
                 state_rep_str = stop_gradient() do
                     split(env.state_representation, "_")
@@ -77,8 +77,7 @@ function get_agent(
                 _, re = Flux.destructure(env.f.f)
                 input_dim = size(env.x)[1]
                 state_encoder = feed_forward(input_dim*M, hidden_size, hidden_size, num_hidden_layers = 1)
-                pen_net = PEN(state_encoder, re, input_dim, num_inputs = M)
-                As = pen_net
+                As = PVN(state_encoder, re, input_dim, num_inputs = M)
                 # As = meta_state_encoder(repeat([s_dim],L), repeat([a_dim],L), encode_dim, seed, aux_dim = aux_dim, σ = activation, pooling_f = kwargs[:pooling_func])
             else
                 out_dim = encode_dim_s + encode_dim_a
@@ -115,7 +114,7 @@ function get_agent(
             state_encoder = As
 
             input_dim = out_dim + aux_dim
-            if env.state_representation == "PEN"
+            if env.state_representation == "PVN"
                 other_params = [state_encoder]
             else
                 other_params = [state_encoder.f]
@@ -397,30 +396,11 @@ function get_agent(
             behavior = :deterministic
         end
 
-        if reg == true
-            r_target = (s_network = nothing, sp_network = nothing, func = reward_target)
-            r_subagent = Subagent(
-                reward_model,
-                submodels,
-                gamma,
-                update_freq,
-                update_cache,
-                num_grad_steps,
-                squared,
-                optimizer(lr),
-                "reward",
-                target = r_target,
-                device = device,
-                other_params = [other_params],
-            )
-            subagents = push!(subagents, r_subagent)
-        end
-
     elseif AgentType == "MCValue"
         model = get_model("Value", model_params)
         submodels = merge(
             submodels,
-            (value = deepcopy(model), state_encoder = deepcopy(state_encoder)),
+            (value = model, state_encoder = state_encoder),
         )
         dqn_target = (s_network = nothing, sp_network = nothing, func = v_target)
         subagent = Subagent(
@@ -441,25 +421,6 @@ function get_agent(
 
         if isnothing(behavior)
             behavior = :deterministic
-        end
-
-        if reg == true
-            r_target = (s_network = nothing, sp_network = nothing, func = reward_target)
-            r_subagent = Subagent(
-                reward_model,
-                submodels,
-                gamma,
-                update_freq,
-                update_cache,
-                num_grad_steps,
-                squared,
-                optimizer(lr),
-                "reward",
-                target = r_target,
-                device = device,
-                other_params = [other_params],
-            )
-            subagents = push!(subagents, r_subagent)
         end
 
         buffer_keys = keys(buffers)
@@ -496,25 +457,6 @@ function get_agent(
 
         if isnothing(behavior)
             behavior = :deterministic
-        end
-
-        if reg == true
-            r_target = (s_network = nothing, sp_network = nothing, func = reward_target)
-            r_subagent = Subagent(
-                reward_model,
-                submodels,
-                gamma,
-                update_freq,
-                update_cache,
-                num_grad_steps,
-                squared,
-                optimizer(lr),
-                "reward",
-                target = r_target,
-                device = device,
-                other_params = [other_params],
-            )
-            subagents = push!(subagents, r_subagent)
         end
 
     elseif AgentType == "SARSA"

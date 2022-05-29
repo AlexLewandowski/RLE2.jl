@@ -60,7 +60,7 @@ function run_experiment(config::Dict; test = false)
 
     pooling_func = :mean
     try
-        pooling_func = Symbol(parsed["pooling_func"])
+        pooling_func = Symbol(config["pooling_func"])
     catch e
         println(e)
     end
@@ -118,8 +118,8 @@ function run_experiment(config::Dict; test = false)
 
     # test_buffer is the buffer used for testing
     # same distribution as train but independent
-    # test_buffer = deepcopy(train_buffer)
-    # test_buffer.name = "test_buffer"
+    test_buffer = deepcopy(train_buffer)
+    test_buffer.name = "test_buffer"
 
     total_reports = 20
 
@@ -135,7 +135,8 @@ function run_experiment(config::Dict; test = false)
     ## Agent
     ##
 
-    buffers = (train_buffer = train_buffer,)# test_buffer = test_buffer)
+    buffers = (train_buffer = train_buffer, test_buffer = test_buffer)
+    # buffers = (train_buffer = train_buffer,)
 
     println(kwargs_dict)
     agent = RLE2.get_agent(
@@ -195,12 +196,12 @@ function run_experiment(config::Dict; test = false)
 
     for i = 1:num_episodes
         RLE2.reset!(env)
-        RLE2.train_subagents(agent, i, reg = reg)
+        RLE2.train_subagents(agent, reg = reg)
         if force !== :offline
             step = 1
             done = RLE2.get_terminal(env)
             while !done
-                RLE2.train_subagents(agent, step, reg = reg)
+                RLE2.train_subagents(agent, reg = reg)
                 for _ = 1:num_env_steps
                     done = RLE2.interact!(env, agent, false, buffer = train_buffer)
                     if step == max_agent_steps || done

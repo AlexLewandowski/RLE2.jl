@@ -1,58 +1,3 @@
-function w_target(target, o_t, mask, r, op_t, maskp, done, T, t, device, gamma)
-    M = size(r)[end]
-    if !isnothing(target.sp_network)
-        q_sp = reshape(maximum(target.sp_network(op_t), dims = 1), :)
-    else
-        q_sp = zeros(Float32, M) |> device
-    end
-    if !isnothing(target.s_network)
-        q_s = reshape(sum(target.s_network(o_t) .* mask, dims = 1), :)
-    else
-        q_s = zeros(Float32, M) |> device
-    end
-    target = r + gamma^(T - t + 1) * q_sp .* (1 .- done) - q_s
-    return target
-end
-
-function CVTarget(target, o_t, mask, r, op_t, maskp, done, T, t, device, gamma)
-    M = size(r)[end]
-    if !isnothing(target.sp_network)
-        q_sp = reshape(maximum(target.sp_network(op_t), dims = 1), :)
-    else
-        q_sp = zeros(Float32, M)
-    end
-    if !isnothing(target.s_network)
-        q_s = reshape(sum(target.s_network(o_t) .* mask, dims = 1), :)
-    else
-        q_s = zeros(Float32, M)
-    end
-    discounted_reward_sum = nstep_returns(subagent, r)
-    return discounted_reward_sum + gamma^(T - t + 1) * q_sp .* (1 .- done) - q_s
-end
-
-function CVCriticTarget(target, o_t, r, mask, op_t, maskp, done, T, t, device, gamma)
-    T = size(r)[2]
-    M = size(r)[end]
-    if !isnothing(target.sp_network)
-        q_sp = reshape(maximum(target.sp_network(op_t), dims = 1), :)
-    else
-        q_sp = zeros(Float32, M)
-    end
-    if !isnothing(target.s_network)
-        q_s = reshape(sum(target.s_network(o_t) .* mask, dims = 1), :)
-    else
-        q_s = zeros(Float32, M)
-    end
-    discounted_reward_sum = nstep_returns(subagent, r)
-    return discounted_reward_sum + gamma^(T - t + 1) * q_sp .* (1 .- done) - q_s
-end
-
-function reward_target(target, o_t, mask, r, op_t, maskp, done, T, t, subagent, gamma, device)
-    M = size(r)[end]
-    target = r
-    return target
-end
-
 function v_target(target, o_t, mask, r, op_t, maskp, done, T, t, subagent, gamma, device)
     M = size(r)[end]
     if !isnothing(target.sp_network)
@@ -78,7 +23,7 @@ end
 function s_target(target, o_t, mask, r, op_t, maskp, done, T, t, subagent, gamma, device)
     o_t = stop_gradient() do
             subagent.submodels.state_encoder(o_t)
-        end
+    end
     return o_t
 end
 
@@ -93,10 +38,6 @@ function max_target(target, o_t, mask, r, op_t, maskp, done, T, t, subagent, gam
             maximum((subagent.target.sp_network(op_t, dropgrad = true)), dims = 1),
             size(r),
         )
-        # q_sp = reshape(
-        #     maximum((subagent.target.sp_network(subagent.submodels.state_encoder(op_t), dropgrad = true)), dims = 1),
-        #     size(r),
-        # )
     else
         if device == Flux.gpu
             q_sp = CUDA.zeros(Float32, size(r))
@@ -199,7 +140,6 @@ function td3_target(
     target = r + gamma^(T - t + 1) * q_sp .* (1 .- done) - q_s
     return target
 end
-
 
 function doubledqn_target(
     target,
