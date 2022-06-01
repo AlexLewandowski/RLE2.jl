@@ -25,6 +25,7 @@ function run_experiment(config::Dict; test = false)
 
     init_policy = Symbol(config["init_policy"])
     init_num_episodes = config["init_num_episodes"]
+    behavior = Symbol(config["behavior"])
 
     predict_window = config["predict_window"]
     history_window = config["history_window"]
@@ -67,6 +68,7 @@ function run_experiment(config::Dict; test = false)
     kwargs_dict[:pooling_func] = pooling_func
 
     measurement_funcs = preprocess_list_of_funcs(config["measurement_funcs"])
+    callback_funcs = preprocess_list_of_funcs(config["callback_funcs"])
 
     if gpu
         try
@@ -121,7 +123,7 @@ function run_experiment(config::Dict; test = false)
     test_buffer = deepcopy(train_buffer)
     test_buffer.name = "test_buffer"
 
-    total_reports = 20
+    total_reports = 200
 
     if num_episodes < total_reports
         total_reports = num_episodes
@@ -162,6 +164,7 @@ function run_experiment(config::Dict; test = false)
         force,
         seed,
         reg;
+        behavior = behavior,
         kwargs_dict...,
     )
 
@@ -195,7 +198,6 @@ function run_experiment(config::Dict; test = false)
     calculate_and_log_metrics(agent, env, agent.measurement_funcs, agent.measurement_dict, config["_SAVE"])
 
     for i = 1:num_episodes
-        RLE2.reset!(env)
         RLE2.train_subagents(agent, reg = reg)
         if force !== :offline
             step = 1
@@ -212,7 +214,9 @@ function run_experiment(config::Dict; test = false)
                     step += 1
                 end
             end
+            RLE2.reset!(env)
         end
+        [callback_f(agent, env) for callback_f in callback_funcs]
         calculate_and_log_metrics(
             agent,
             env,

@@ -1,6 +1,6 @@
 [config]
 save_dir="results/optenv_valuegrad_sinwave/"
-exp_file="experiment/experiment_optenv.jl"
+exp_file="experiment/experiment.jl"
 exp_module_name = "Main"
 exp_func_name = "run_experiment"
 pre_exp_files = []
@@ -8,13 +8,13 @@ arg_iter_type = "iter"
 post_exp = "gen_metric_dict"
 
 [static_args]
-init_num_episodes = 10
+init_num_episodes = 128
 init_policy = "default"
-num_episodes = 100
-num_grad_steps = 1
+num_episodes = 1000
+num_grad_steps = 10
 num_env_steps = 1
 batch_size = 128
-max_num_episodes = 100
+max_num_episodes = 1000
 max_episode_length = 1000
 history_window = 1
 BufferType = "TransitionReplayBuffer"
@@ -42,26 +42,23 @@ behavior = "grad_init"
 run_traj = false
 burn_in = 2
 measurement_funcs = """
-        online_returns,
-        buffer_loss,
-        estimate_startvalue,
-        estimate_termvalue,
-        # estimate_startvalue_optenvgrad,
-        mc_buffer_loss,
-        optimize_student_metrics,
-        # rollout_returns,
-        # rollout_returns_wide,
-        # rollout_returns_narrow,
-        # rollout_returns_tanh,
-        # rollout_returns_eval_env,
-        # rollout_returns_constant,
-        # action_gap,
+                  online_returns,
+                  buffer_loss,
+                  estimate_startvalue,
+                  estimate_termvalue,
+                  mc_buffer_loss,
+                  optimize_student_metrics,
+"""
+callback_funcs = """
+               optimize_student,
 """
 
 [sweep_args]
 # lr = "[0.001, 0.0005, 0.0001]"
 lr = "[0.0005]"
 seed = "using Random; rand(MersenneTwister(10010111215), 1:10^10, 2)"
-state_representation = ["PD-y-grad_20"]
-EnvType = ["OptEnv-FiniteHorizon10-sinWave-ADAM"]
+# state_representation = ["PD-y-grad_20"]
+# EnvType = ["OptEnv-FiniteHorizon10-sinWave-ADAM"]
+state_representation = ["PD-y_20"]
+EnvType = ["OptEnv-FiniteHorizon1-sinWave-SGD"]
 pooling_func = ["mean"]

@@ -98,10 +98,10 @@ function calculate_and_log_metrics(
         results_tuple = calculate_metrics(agent, env, measurement_funcs, path)
         log_metrics(results_tuple, measurement_dict, agent.measurement_count, init = true)
     else
-        if online_returns in measurement_funcs
-            results_tuple = calculate_metrics(agent, env, [online_returns], path)
-            log_metrics(results_tuple, measurement_dict, agent.measurement_count)
-        end
+        # if online_returns in measurement_funcs
+        #     results_tuple = calculate_metrics(agent, env, [online_returns], path)
+        #     log_metrics(results_tuple, measurement_dict, agent.measurement_count)
+        # end
     end
     agent.measurement_count += 1
     return nothing

@@ -35,6 +35,8 @@ measurement_funcs = """
         mc_buffer_loss,
         online_returns,
 """
+callback_funcs = """
+"""
 
 [sweep_args]
 lr = "[0.1f0^(i) for i = 3:5]"

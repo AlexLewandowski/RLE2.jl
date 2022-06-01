@@ -58,12 +58,12 @@ function OptEnv(
     data_size = 1000,
     max_steps = 200,
     device = Flux.gpu,
-    rng,
+    rng
 )
     internal_opt1 = Flux.ADAM()
     internal_opt2 = Flux.ADAM()
     internal_opt = [internal_opt1, internal_opt2]
-    # internal_opt.eta /= 10
+
     if optimizer == "ADAM"
         opt = Flux.ADAM()
     elseif optimizer == "SGD"
@@ -340,7 +340,7 @@ function init_nn(
     rng,
     device,
     dataset_name;
-    drop_rate = 0.0f0,
+    drop_rate = 0.0f0
 )
     if contains(dataset_name, "CNN")
         f = NeuralNetwork(LeNet5())
@@ -357,7 +357,7 @@ function init_nn(
             end
 
             # output_act = clamp_sin
-            output_act =  identity
+            output_act = identity
         end
 
         f = NeuralNetwork(
@@ -382,7 +382,7 @@ function generate_sin_targets(x, task_id)
     rng = MersenneTwister(task_id)
 
     a = (5.0f0 - 0.1f0) * rand(rng, Float32) + 0.1f0
-    b = 2.0f0 * Base.π * rand(rng, Float32)
+    b = Base.π * rand(rng, Float32)
 
     return a .* sin.(x .+ b)
 end
@@ -398,7 +398,7 @@ function get_data(
     n_tasks;
     rng,
     device,
-    task_id = nothing,
+    task_id = nothing
 )
 
     if isnothing(task_id)
@@ -591,7 +591,7 @@ function init_data!(env, data_size, in_dim, out_dim, h_dim, num_layers; rng, dev
             env.n_tasks;
             rng = env.rng,
             device = env.device,
-            task_id = task_id,
+            task_id = task_id
         )
         push!(xs, x)
         push!(x_tests, x_test)
@@ -722,7 +722,7 @@ function calc_performance(
     mode = :test,
     f = nothing,
     all_data = false,
-    for_reward = true,
+    for_reward = true
 )
     if isnothing(f)
         f = env.f
@@ -763,7 +763,7 @@ function calc_performance(
             r = env.J(f, x, y)
 
             # return -minimum([r, scale])/scale
-            reward =  -1/(1/r+1)
+            reward = -1 / (1 / r + 1)
             # reward = -r
             # return reward
 
@@ -983,7 +983,7 @@ function reset!(
     agent = nothing,
     saved_f = false,
     task_id = nothing,
-    t = nothing,
+    t = nothing
 )
     in_dim = env.in_dim
     out_dim = env.out_dim
@@ -1014,7 +1014,7 @@ function reset!(
             env.h_dim,
             env.num_layers;
             rng = env.rng,
-            device = env.device,
+            device = env.device
         )
     end
 
@@ -1051,10 +1051,6 @@ function reset!(
     env.f = f
     to_device!(env.f, device)
 
-    if !isnothing(agent)
-        optimize_student(env, agent)
-    end
-
     env.acc = [0.0f0, 0.0f0, 0.0f0]
     env.acc[1] = calc_performance(env, mode = :train)
     env.acc[3] = calc_performance(env, mode = :test)
@@ -1079,6 +1075,8 @@ function optimize_student_metrics(
     en::AbstractOptEnv;
     n_steps = 1000,
     return_gs = false,
+    f = :new,
+    value = false
 )
     adapted_performance = []
     performance = []
@@ -1091,7 +1089,8 @@ function optimize_student_metrics(
     env.init_f = NeuralNetwork(re(p))
 
 
-    for i in env.task_inds
+    # for i in env.task_inds
+    for i in 1:4
         time_lim = env.success_condition #TODO
         # time_lim = 10
         reset!(env, task_id = i, saved_f = false)
@@ -1102,14 +1101,20 @@ function optimize_student_metrics(
             max_steps = time_lim,
             state = :dontreset,
         )
-        # push!(performance, ep[end].info[1][1])
-        train_perf = calc_performance(env, mode = :train, f = env.f, for_reward = false)
-        test_perf = calc_performance(env, mode = :test, f = env.f, for_reward = false)
+
+        if value
+            train_perf = sum([e.r for e in ep])
+            test_perf = train_perf
+        else
+            train_perf = calc_performance(env, mode = :train, f = env.f, for_reward = false)
+            test_perf = calc_performance(env, mode = :test, f = env.f, for_reward = false)
+        end
+
         push!(performance, train_perf)
         push!(test_performance, test_perf)
 
 
-        reset!(env, task_id = i, saved_f = :old)
+        reset!(env, task_id = i, saved_f = f)
         ep = generate_episode(
             env,
             agent,
@@ -1117,9 +1122,13 @@ function optimize_student_metrics(
             max_steps = time_lim,
             state = :dontreset,
         )
-        # push!(adapted_performance, ep[end].info[1][1])
-        train_perf = calc_performance(env, mode = :train, f = env.f, for_reward = false)
-        test_perf = calc_performance(env, mode = :test, f = env.f, for_reward = false)
+        if value
+            train_perf = sum([e.r for e in ep])
+            test_perf = train_perf
+        else
+            train_perf = calc_performance(env, mode = :train, f = env.f, for_reward = false)
+            test_perf = calc_performance(env, mode = :test, f = env.f, for_reward = false)
+        end
         push!(adapted_performance, train_perf)
         push!(adapted_test_performance, test_perf)
     end
@@ -1138,221 +1147,13 @@ function optimize_student_metrics(
     return rs, names
 end
 
-# function optimize_student_metrics(env::AbstractOptEnv, agent; n_steps = 1000, return_gs = false)
-#     in_dim = env.in_dim
-#     out_dim = env.out_dim
-#     device = env.device
-#     h_dim = env.h_dim
-#     num_layers = env.num_layers
-#     env.opt = typeof(env.opt)()
-#     env.alpha = 0.0f0
-#     env.done = false
-#     data_size = env.data_size
-#     rng = env.rng
-#     opt = Flux.ADAM()
-#     # env.opt.eta = env.opt.eta/10
-#     # println("sum obs: ", sum(agent.subagents[1](get_next_obs_with_f(env, env.f) |> agent.device)))
-#     # println("SUM: ", sum(LinearAlgebra.norm, env.f.params))
-
-#     println("V init: ", agent.subagents[1](get_next_obs_with_f(env, env.f) |> agent.device))
-#     gs = nothing
-#     if n_steps > 10
-#         report_freq = Int(n_steps / 10)
-#     else
-#         report_freq = 10
-#     end
-
-#     for i = 1:n_steps
-#         f = env.f
-
-#         ps = nothing
-#         s_p = nothing
-#         if env.state_representation == "parameters"
-#             s_p, re = Flux.destructure(f.f)
-#             ps = Flux.params(s_p)
-#         else
-#             ps = f.params
-#         end
-
-#         gs = Flux.gradient(() -> begin
-#                                s = nothing
-#                                if env.state_representation == "parameters"
-#                                    s = vcat(s_p, Float32.(log(env.opt.eta)))
-#                                else
-#                                    s = get_next_obs_with_f(env, f)
-#                                end
-
-#                                V = agent.subagents[1](s |> agent.device)
-#                                @assert length(V) == 1
-#                                J = -sum(V)
-#                                return J
-#                            end, ps)
-
-#         Flux.Optimise.update!(opt, ps, gs)
-#         if env.state_representation == "parameters"
-#             f.f = re(ps[1])
-#             f.params = ps
-#         end
-
-#         if mod(i, report_freq) == 0
-#             V = agent.subagents[1](get_next_obs_with_f(env, f) |> agent.device)
-#             G_norm = sum(LinearAlgebra.norm, gs)
-#             println("i: ", string(i), " | V : ", V, " | G_norm : ", G_norm)
-#             println("ACC: ", calc_performance(env, mode = :train))
-
-#             # in_dim = env.in_dim
-#             # out_dim = env.out_dim
-#             # device = env.device
-#             # h_dim = env.h_dim
-#             # num_layers = env.num_layers
-#             # env.opt = typeof(env.opt)()
-#             # env.alpha = 0.0f0
-#             # env.done = false
-#             # data_size = env.data_size
-#             # rng = env.rng
-
-#             # if env.dataset_name == "syntheticNN" ||
-#             #     env.dataset_name == "syntheticCluster"
-#             #     init_data!(
-#             #         env,
-#             #         data_size,
-#             #         in_dim,
-#             #         out_dim,
-#             #         h_dim,
-#             #         num_layers;
-#             #         rng = rng,
-#             #         device = env.device,
-#             #     )
-#             # end
-#         end
-
-#     end
-
-#     env.obs = get_next_obs(env)
-
-#     println("V post: ", agent.subagents[1](get_next_obs_with_f(env, f) |> agent.device))
-
-#     rollout_returns
-# end
-
-# function maml_student(env::AbstractOptEnv, buffer; n_steps = 200, return_gs = false, greedy = false)
-#     in_dim = env.in_dim
-#     out_dim = env.out_dim
-#     device = env.device
-#     h_dim = env.h_dim
-#     num_layers = env.num_layers
-#     env.opt = typeof(env.opt)()
-#     env.alpha = 0.0f0
-#     env.done = false
-#     data_size = env.data_size
-#     rng = env.rng
-
-#     @assert env.state_representation == "parameters"
-
-#     if greedy
-#         opt = env.internal_opt
-#         f = env.init_f
-#     else
-#         f = env.f
-#         opt = Flux.ADAM()
-#     end
-
-#     last_ep_idx = buffer._buffer_idx - 1
-#     if last_ep_idx == 0
-#         last_ep_idx = buffer.max_num_episodes
-#     end
-
-#     ps = buffer._episodes[last_ep_idx][end].op[1:end-1]
-#     _, re = Flux.destructure(env.f.f)
-#     temp_f = re(ps) |> env.device
-
-#     xs = []
-#     ys = []
-
-#     N = size(env.x)[end]
-#     M = 128
-
-#     inds = stop_gradient() do
-#         StatsBase.sample(env.rng, 1:N, M, replace = false)
-#     end
-
-#     x = retrieve_with_inds(env, env.x, inds)# |> env.device
-#     y = retrieve_with_inds(env, env.y, inds)# |> env.device
-
-#     push!(xs, x)
-#     push!(ys, y)
-
-#     xs = cat(xs..., dims = 2)
-#     ys = cat(ys..., dims = 2)
-
-#     xs_test = []
-#     ys_test = []
-
-#     N = size(env.x_test)[end]
-#     M = 128
-
-#     inds_test = stop_gradient() do
-#         StatsBase.sample(env.rng, 1:N, M, replace = false)
-#     end
-
-#     x_test = retrieve_with_inds(env, env.x_test, inds)# |> env.device
-#     y_test = retrieve_with_inds(env, env.y_test, inds)# |> env.device
-
-#     push!(xs_test, x_test)
-#     push!(ys_test, y_test)
-
-#     xs_test = cat(xs_test..., dims = 2)
-#     ys_test = cat(ys_test..., dims = 2)
-#     println(typeof(xs))
-#     println(typeof(ys))
-
-#     inner_opt = Flux.ADAM()
-#     function inner_loop(f, x, y)
-#         gs_inner = gradient(Flux.params(f)) do
-#             println(f)
-#             println(sum(f(x)))
-#             return sum(f(x))
-#         end
-#         return 0
-#     end
-
-#     gs = gradient(Flux.params(temp_f)) do
-
-#         inner_loop(env.init_f.f, xs, ys)
-#         # Flux.Optimise.update!(inner_opt, Flux.params(temp_f), gs_inner)
-
-#         return 0
-#         # env.J(temp_f, xs_test, ys_test)
-#     end
-#     return 0
-
-#     new_gs = Zygote.Grads(IdDict(), Flux.params(env.init_f.f))
-#     num_ps = length(Flux.params(env.init_f.f))
-
-#     for i = 1:num_ps
-#         old_f_p = Flux.params(env.init_f.f)[i]
-#         temp_f_p = Flux.params(temp_f)[i]
-
-#         new_gs.grads[old_f_p] = gs.grads[temp_f_p]
-#     end
-
-#     Flux.Optimise.update!(opt, Flux.params(env.init_f.f), new_gs)
-
-#     env.f = deepcopy(env.init__f)
-
-#     env.obs = get_next_obs(env)
-
-#     if return_gs
-#         return new_gs
-#     end
-# end
 
 function fomaml_student(
     env::AbstractOptEnv,
     buffer;
     n_steps = 200,
     return_gs = false,
-    greedy = false,
+    greedy = false
 )
     in_dim = env.in_dim
     out_dim = env.out_dim
@@ -1374,29 +1175,20 @@ function fomaml_student(
         last_ep_idx = buffer.max_num_episodes
     end
 
-    ps, re = Flux.destructure(env.init_f.f)
+    ps = buffer._episodes[last_ep_idx][end].op[1:end-1]
+    _, re = Flux.destructure(env.init_f.f)
     temp_f = re(ps) |> env.device
 
-    n_tsks = 16
     xs = []
     ys = []
-    for _ = 1:n_tsks
-        init_data!(
-            env,
-            data_size,
-            in_dim,
-            out_dim,
-            h_dim,
-            num_layers;
-            rng = rng,
-            device = env.device,
-        )
+    N = size(env.x)[end]
+    for task_id in env.task_inds
 
-        N = size(env.x)[end]
-        M = env.batch_size
-
+        reset!(env, task_id = task_id)
+        N2 = Int(N / env.n_tasks)
+        ind_range = (1+N2*(task_id-1)):N2*task_id
         inds = stop_gradient() do
-            StatsBase.sample(env.rng, 1:N, M, replace = false)
+            StatsBase.sample(env.rng, ind_range, env.batch_size, replace = false)
         end
 
         x = retrieve_with_inds(env, env.x, inds)# |> env.device
@@ -1412,12 +1204,13 @@ function fomaml_student(
     gs = Flux.gradient(Flux.params(temp_f)) do
         env.J(temp_f, xs, ys)# + env.alpha*sum(LinearAlgebra.norm, env.f.params)
     end
+    println("FOMAML LOSS: ", env.J(temp_f, xs, ys))
 
     new_gs = Zygote.Grads(IdDict(), Flux.params(env.init_f.f))
     num_ps = length(Flux.params(env.init_f.f))
 
     for i = 1:num_ps
-        old_f_p = Flux.params(env.init_f.f)[i]
+        old_f_p = env.init_f.params[i]
         temp_f_p = Flux.params(temp_f)[i]
 
         new_gs.grads[old_f_p] = gs.grads[temp_f_p]
@@ -1434,67 +1227,78 @@ function fomaml_student(
     end
 end
 
-    function get_v(env, agent, f, task_id)
-        s = nothing
-        if env.state_representation == "parameters"
-            s = vcat(s_p, Float32.(log(env.opt.eta)))
-        else
-            s = get_next_obs_with_f(env, f; task_id = task_id)
-        end
-
-        V = agent.subagents[1](s |> agent.device)
-        @assert length(V) == 1
-        return V
+function get_v(env, agent, f, task_id; t = nothing)
+    if isnothing(t)
+        t = env.max_steps
+    end
+    s = nothing
+    if env.state_representation == "parameters"
+        s = vcat(s_p, Float32.(log(env.opt.eta)))
+    else
+        s = get_next_obs_with_f(env, f; task_id = task_id, t = t)
     end
 
-    function get_mean_v(env, agent, f; deterministic = false)
-        J = 0.0f0
-        n_tasks = env.n_tasks
+    V = agent.subagents[1](s |> agent.device)
+    @assert length(V) == 1
+    return V
+end
 
-        tasks = stop_gradient() do
-            # StatsBase.sample(env.rng, env.task_inds, 4)
-            StatsBase.sample(env.rng, 1:n_tasks, 1)
-        end
-        # tasks = env.task_inds
+function get_mean_v(env, agent, f; deterministic = false, t = nothing)
+    if isnothing(t)
+        t = env.max_steps
+    end
+    J = 0.0f0
+    n_task_sampled = minimum([4, env.n_tasks])
 
-        #     tasks = 1:env.n_tasks
-        if deterministic
-            tasks = 1:env.n_tasks
-        end
+    tasks = stop_gradient() do
+        # StatsBase.sample(env.rng, env.task_inds, 4)
+        StatsBase.sample(env.rng, 1:env.n_tasks, n_task_sampled, replace = false)
+    end
+    # tasks = env.task_inds
 
-        for task_id in tasks
-            J += sum(get_v(env, agent, f, task_id))
-        end
-        return J / length(tasks)
+    #     tasks = 1:env.n_tasks
+    if deterministic
+        tasks = 1:env.n_tasks
     end
 
-
-    function get_sum_grad(env, agent, f, ps; deterministic = false)
-        gs = Flux.gradient(
-            () -> begin
-                -get_mean_v(env, agent, f, deterministic = deterministic)
-            end,
-            ps,
-        )
-        return gs
+    # println(tasks)
+    for task_id in tasks
+        J += sum(get_v(env, agent, f, task_id, t = t))
     end
+    return J / length(tasks)
+end
+
+function get_sum_grad(env, agent, f, ps; deterministic = false, t = nothing)
+    if isnothing(t)
+        t = env.max_steps
+    end
+
+    gs = Flux.gradient(
+        () -> begin
+            -get_mean_v(env, agent, f, deterministic = deterministic, t = t)
+        end,
+        ps,
+    )
+    return gs
+end
 
 using Optim, FluxOptTools
 function optimize_student(
-    env::AbstractOptEnv,
-    agent;
-    n_steps = 200,
+    agent,
+    env::AbstractOptEnv;
+    n_steps = 10,
     return_gs = false,
     greedy = false,
-    cold_start = true,
+    cold_start = false,
     all_data = true,
-    t = nothing,
+    t = nothing
 )
     device = agent.device
     data_size = env.data_size
     rng = env.rng
 
-    @assert env.t == env.max_steps
+    # @assert env.t == env.max_steps
+    t = env.max_steps
 
     # if !isnothing(t)
     #     env.t = t
@@ -1509,14 +1313,13 @@ function optimize_student(
 
     if cold_start
         println("Cold")
-        error()
         f = default_f
-        env.init_f2 = f
         env.init_f = f
         opt = typeof(env.internal_opt[1])()
+        env.internal_opt[1] = opt
     else
         f = env.init_f #TODO cold-start coniditons?
-        v_init = sum(agent.subagents[1](get_next_obs_with_f(env, f) |> agent.device))
+        v_init = sum(agent.subagents[1](get_next_obs_with_f(env, f, t = t) |> agent.device))
         # opt = typeof(env.internal_opt)()
         # env.internal_opt = opt
         # opt = env.internal_opt[1]
@@ -1533,20 +1336,31 @@ function optimize_student(
     end
 
 
-    gs = get_sum_grad(env, agent, f, ps)
-    G_norm_init = sum(LinearAlgebra.norm, gs)
+    # gs = get_sum_grad(env, agent, f, ps)
+    # G_norm_init = sum(LinearAlgebra.norm, gs)
 
-    v_init = get_mean_v(env, agent, env.init_f, deterministic = true)
-    v_init_old = get_mean_v(env, agent, env.init_f2, deterministic = true)
-    # v_default = get_mean_v(env, agent, default_f, deterministic = true)
+    # v_init = get_mean_v(env, agent, env.init_f, deterministic = true)
+    # v_init_old = get_mean_v(env, agent, env.init_f2, deterministic = true)
+    # # v_default = get_mean_v(env, agent, default_f, deterministic = true)
 
-    println("V init current: ", v_init)
-    println("V init old : ", v_init_old)
+    # rs, names = optimize_student_metrics(agent, env, f = :new, value = true)
+    # mc_v_init, _, _, _ = rs
+
+    # rs, names = optimize_student_metrics(agent, env, f = :old, value = true)
+    # mc_v_init_old, _, _, _ = rs
+
+    # println("MC V Init: ", mc_v_init)
+    # println("MC V Init Old: ", mc_v_init_old)
+
+    # println("V Init: ", v_init)
+    # println("V Init Old: ", v_init_old)
+
+    # error()
 
     if !cold_start
-        if v_init_old > v_init# && G_norm_init < 1e-5 # TODO these reset conditions arer worse more often than not
-        # if v_init_old - v_init > 0.1f0# && G_norm_init < 1e-5 # TODO these reset conditions arer worse more often than not
-        # if false
+        # if mc_v_init_old > mc_v_init# && G_norm_init < 1e-5 # TODO these reset conditions arer worse more often than not
+        # if mc_v_init_old - mc_v_init > 0.5f0# && G_norm_init < 1e-5 # TODO these reset conditions arer worse more often than not
+        if false
             v_init = v_init_old
             println("ROLLBACK")
             p, re = Flux.destructure(env.init_f2.f)
@@ -1561,9 +1375,16 @@ function optimize_student(
             old_ps = env.init_f2.params
             new_ps = env.init_f.params
 
-            if !isempty(opt.state)
-                opt.state = IdDict(new_p => (deepcopy(old_opt.state[old_p][1]), deepcopy(old_opt.state[old_p][2]), deepcopy(old_opt.state[old_p][3]))  for (new_p, old_p) in zip(new_ps, old_ps))
+            if typeof(opt) <: Flux.ADAM
+                if !isempty(opt.state)
+                    opt.state = IdDict(new_p => (deepcopy(old_opt.state[old_p][1]), deepcopy(old_opt.state[old_p][2]), deepcopy(old_opt.state[old_p][3])) for (new_p, old_p) in zip(new_ps, old_ps))
+                end
+            elseif typeof(opt) <: Flux.RMSProp
+                if !isempty(opt.acc)
+                    opt.acc = IdDict(new_p => deepcopy(old_opt.acc[old_p]) for (new_p, old_p) in zip(new_ps, old_ps))
+                end
             end
+
             ps = nothing
             s_p = nothing
             if env.state_representation == "parameters"
@@ -1582,8 +1403,14 @@ function optimize_student(
             old_ps = env.init_f.params
             new_ps = env.init_f2.params
 
-            if !isempty(opt.state)
-                opt.state = IdDict(new_p => (deepcopy(old_opt.state[old_p][1]), deepcopy(old_opt.state[old_p][2]), deepcopy(old_opt.state[old_p][3]))  for (new_p, old_p) in zip(new_ps, old_ps))
+            if typeof(opt) <: Flux.ADAM
+                if !isempty(opt.state)
+                    opt.state = IdDict(new_p => (deepcopy(old_opt.state[old_p][1]), deepcopy(old_opt.state[old_p][2]), deepcopy(old_opt.state[old_p][3])) for (new_p, old_p) in zip(new_ps, old_ps))
+                end
+            elseif typeof(opt) <: Flux.RMSProp
+                if !isempty(opt.acc)
+                    opt.acc = IdDict(new_p => deepcopy(old_opt.acc[old_p]) for (new_p, old_p) in zip(new_ps, old_ps))
+                end
             end
 
             opt = env.internal_opt[1]
@@ -1591,12 +1418,12 @@ function optimize_student(
     end
     # opt = typeof(env.internal_opt[1])()
 
-    println("V init: ", v_init)
+    # println("V init: ", v_init)
     # println("V default: ", v_default)
 
-    gs = get_sum_grad(env, agent, f, ps)
-    G_norm_init = sum(LinearAlgebra.norm, gs)
-    println("G_norm init: ", G_norm_init)
+    # gs = get_sum_grad(env, agent, f, ps)
+    # G_norm_init = sum(LinearAlgebra.norm, gs)
+    # println("G_norm init: ", G_norm_init)
 
     gs = nothing
     num_reports = 10
@@ -1606,14 +1433,44 @@ function optimize_student(
         report_freq = 10
     end
 
+    ###
+    ### LBFGS
+    ###
+    # old_env_device = env.device
+    # old_agent_device = agent.device
+    # to_device(env, Flux.cpu)
+    # to_device(agent, Flux.cpu)
+
+    # init_data!(
+    #     env,
+    #     data_size,
+    #     in_dim,
+    #     out_dim,
+    #     h_dim,
+    #     num_layers;
+    #     rng = rng,
+    #     device = env.device,
+    # )
+
+    # loss() =  -sum(agent.subagents[1](RLExperiments.get_next_obs_with_f(env, f) |> agent.device))
+    # pars = Flux.params(f.f)
+    # lossfun, gradfun, fg!, p0 = optfuns(loss, pars)
+    # res = Optim.optimize(Optim.only_fg!(fg!), p0, LBFGS(), Optim.Options(iterations=10000, store_trace=true))
+    # println(res)
+    # to_device(env, old_env_device)
+    # to_device(agent, old_agent_device)
+    ###
+    ### LBFGS
+    ###
+
     for i = 1:n_steps
 
         if mod(i, report_freq) == 0
 
-        #     if !isempty(env.internal_opt[2].state)
-        # ss = env.internal_opt[2].state[env.init_f2.params[1]]
-        # println([sum(s) for s in ss])
-        #     end
+            #     if !isempty(env.internal_opt[2].state)
+            # ss = env.internal_opt[2].state[env.init_f2.params[1]]
+            # println([sum(s) for s in ss])
+            #     end
 
             # V = agent.subagents[1](get_next_obs_with_f(env, env.f) |> agent.device)
             # G_norm = sum(LinearAlgebra.norm, gs)
@@ -1623,9 +1480,9 @@ function optimize_student(
             # println("Final Acc: ", ep[end].info[1][1])
             # p rintln("i: ", string(i), " | V : ", V, " | G_norm : ", G_norm)
             # println("ACC: ", calc_performance(env, f = f, mode = :train))
-            println("V: ", get_mean_v(env, agent, f, deterministic = true))
+            # println("V: ", get_mean_v(env, agent, f, deterministic = true))
             # println("ACC_ALL: ", calc_performance(env, mode = :train, f = f, all_data = true))
-            # println("V ALL: ", agent.subagents[1](get_next_obs_with_f(env, f, all_data = true) |> agent.device))
+            # println("V ALL: ", agent.subagents[1](get_next_obs_with_f(env, f, t = t, all_data = true) |> agent.device))
         end
 
         # ps = nothing
@@ -1638,7 +1495,7 @@ function optimize_student(
         # end
 
 
-        gs = get_sum_grad(env, agent, f, ps)
+        gs = get_sum_grad(env, agent, f, ps, t = t)
 
         Flux.Optimise.update!(opt, ps, gs)
         # if env.state_representation == "parameters"
@@ -1723,7 +1580,12 @@ function get_next_obs_with_f(
     M = nothing,
     task_id = nothing,
     xy = nothing,
+    t = nothing,
 )
+    if isnothing(t)
+        t = env.t
+    end
+
     N = size(env.x)[end]
 
     state_rep_str = stop_gradient() do
@@ -1747,7 +1609,7 @@ function get_next_obs_with_f(
     elseif state_rep_str[1] == "oblivious"
         acc = copy(log(-log(env.acc[1])))
         acc_test = copy(log(-log(env.acc[3])))
-        aux = Float32.([log(env.opt.eta), env.t, acc, acc_test])
+        aux = Float32.([log(env.opt.eta), t, acc, acc_test])
         return aux
 
     elseif contains(state_rep_str[1], "PD")
@@ -1794,17 +1656,18 @@ function get_next_obs_with_f(
         y_ = f(x_)
 
         if env.dataset_name == "sinWave"
-            y_ = clamp.(y_, -10f0, 10f0)
+            scale = 10f0
+            y_ = clamp.(y_, -scale, scale)/scale
         end
 
         # y_ = (y_ .- y).^2
 
         if env.reward_function == "FiniteHorizon"
             t = stop_gradient() do
-                positional_encoding([env.t])
+                positional_encoding([t])
             end
             # aux = stop_gradient() do
-            #     Float32.([log(env.opt.eta), env.t])
+            #     Float32.([log(env.opt.eta), t])
             # end
 
             aux = stop_gradient() do
@@ -1890,7 +1753,7 @@ function get_next_obs_with_f(
             end
 
         elseif state_rep_str[1] == "PD-y-grad"
-            if env.t == env.horizon
+            if t == env.max_steps
                 hist = zeros(size(y_))
             else
                 hist = env.old_f(x_)
@@ -2003,7 +1866,7 @@ function estimate_startvalue_optenvgrad(agent::AbstractAgent, env::AbstractEnv; 
             pre_val = maximum(q)
         end
 
-        gs = optimize_student(env, agent, return_gs = true)
+        gs = optimize_student(agent, env, return_gs = true)
 
         s = get_obs(env)
         if typeof(agent.subagents[1].model) <: AbstractContinuousActionValue
