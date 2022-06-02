@@ -62,6 +62,8 @@ function OptEnv(
 )
     internal_opt1 = Flux.ADAM()
     internal_opt2 = Flux.ADAM()
+    # internal_opt1 = Flux.RMSProp()
+    # internal_opt2 = Flux.RMSProp()
     internal_opt = [internal_opt1, internal_opt2]
 
     if optimizer == "ADAM"
@@ -1169,6 +1171,7 @@ function fomaml_student(
     @assert env.state_representation == "parameters"
 
     opt = env.internal_opt[1]
+    opt = typeof(env.internal_opt[1])()
 
     last_ep_idx = buffer._buffer_idx - 1
     if last_ep_idx == 0
@@ -1204,7 +1207,7 @@ function fomaml_student(
     gs = Flux.gradient(Flux.params(temp_f)) do
         env.J(temp_f, xs, ys)# + env.alpha*sum(LinearAlgebra.norm, env.f.params)
     end
-    println("FOMAML LOSS: ", env.J(temp_f, xs, ys))
+    # println("FOMAML LOSS: ", env.J(temp_f, xs, ys))
 
     new_gs = Zygote.Grads(IdDict(), Flux.params(env.init_f.f))
     num_ps = length(Flux.params(env.init_f.f))
@@ -1293,6 +1296,7 @@ function optimize_student(
     all_data = true,
     t = nothing
 )
+
     device = agent.device
     data_size = env.data_size
     rng = env.rng
