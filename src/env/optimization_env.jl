@@ -1185,7 +1185,14 @@ function fomaml_student(
     xs = []
     ys = []
     N = size(env.x)[end]
-    for task_id in env.task_inds
+
+    n_task_sampled = minimum([4, env.n_tasks])
+
+    task_inds = stop_gradient() do
+        StatsBase.sample(env.rng, 1:env.n_tasks, n_task_sampled, replace = false)
+    end
+
+    for task_id in task_inds
 
         reset!(env, task_id = task_id)
         N2 = Int(N / env.n_tasks)
@@ -1219,7 +1226,14 @@ function fomaml_student(
         new_gs.grads[old_f_p] = gs.grads[temp_f_p]
     end
 
+    # println("XS:", sum(xs))
+    # println("YS:", sum(ys))
+    # println("PS temp:", sum(Flux.params(temp_f)[1]))
+    # println("PS PRE:", sum(Flux.params(env.init_f.f)[1]))
+
     Flux.Optimise.update!(opt, Flux.params(env.init_f.f), new_gs)
+
+    # println("PS POST:", sum(Flux.params(env.init_f.f)[1]))
 
     env.f = deepcopy(env.init_f)
 
@@ -1251,7 +1265,7 @@ function get_mean_v(env, agent, f; deterministic = false, t = nothing)
         t = env.max_steps
     end
     J = 0.0f0
-    n_task_sampled = minimum([4, env.n_tasks])
+    n_task_sampled = minimum([8, env.n_tasks])
 
     tasks = stop_gradient() do
         # StatsBase.sample(env.rng, env.task_inds, 4)
@@ -1264,7 +1278,6 @@ function get_mean_v(env, agent, f; deterministic = false, t = nothing)
         tasks = 1:env.n_tasks
     end
 
-    # println(tasks)
     for task_id in tasks
         J += sum(get_v(env, agent, f, task_id, t = t))
     end
@@ -1289,12 +1302,13 @@ using Optim, FluxOptTools
 function optimize_student(
     agent,
     env::AbstractOptEnv;
-    n_steps = 10,
+    n_steps = 1,
     return_gs = false,
     greedy = false,
     cold_start = false,
     all_data = true,
-    t = nothing
+    t = nothing,
+    debug = false,
 )
 
     device = agent.device
@@ -1484,7 +1498,9 @@ function optimize_student(
             # println("Final Acc: ", ep[end].info[1][1])
             # p rintln("i: ", string(i), " | V : ", V, " | G_norm : ", G_norm)
             # println("ACC: ", calc_performance(env, f = f, mode = :train))
-            # println("V: ", get_mean_v(env, agent, f, deterministic = true))
+            if debug
+                println("V: ", get_mean_v(env, agent, f, deterministic = true))
+            end
             # println("ACC_ALL: ", calc_performance(env, mode = :train, f = f, all_data = true))
             # println("V ALL: ", agent.subagents[1](get_next_obs_with_f(env, f, t = t, all_data = true) |> agent.device))
         end

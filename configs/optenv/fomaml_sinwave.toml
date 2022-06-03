@@ -57,5 +57,5 @@ burn_in = 2
 lr = "[0.001]"
 seed = "using Random; rand(MersenneTwister(10010111215), 1:10^10, 2)"
 state_representation = ["parameters"]
-EnvType = ["OptEnv-FiniteHorizon1-sinWave-SGD"]
+EnvType = ["OptEnv-FiniteHorizon10-sinWave-ADAM"]
 pooling_func = ["attention"]
