@@ -117,7 +117,6 @@ force = nothing
 measurement_freq = 1
 measurement_funcs = [rollout_returns, buffer_loss]
 update_freq = 2
-update_cache = 1
 num_grad_steps = 1
 reg = 0.1
 
@@ -133,7 +132,6 @@ shorter_get_agent =
         measurement_funcs,
         gamma,
         update_freq,
-        update_cache,
         predict_window,
         history_window,
         num_layers,

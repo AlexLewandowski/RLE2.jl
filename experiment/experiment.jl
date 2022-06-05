@@ -150,7 +150,6 @@ function run_experiment(config::Dict; test = false)
         measurement_funcs,
         gamma,
         update_freq,
-        update_cache,
         predict_window,
         history_window,
         num_layers,
