@@ -10,6 +10,9 @@ begin
 	Pkg.activate("..")
 end
 
+# ╔═╡ 8de4578b-3f74-4de6-b440-08b1dcaf5c07
+using Replotuce.Plots
+
 # ╔═╡ eec595bf-a788-415a-9619-8e68a5d11a6a
 begin
 	import RLE2
@@ -207,6 +210,26 @@ train_agent(PE_agent,
 			callback_funcs = callback_funcs,
     		force = force)
 
+# ╔═╡ 23074fa6-7695-440f-9eaa-a56c5241c77b
+begin
+	yx_pe = PE_agent.measurement_dict["mc_loss_value_train_buffer"]
+	yx_param = param_agent.measurement_dict["mc_loss_value_train_buffer"]
+	xy_pe = [(yx[2], yx[1]) for yx in yx_pe]
+	xy_param = [(yx[2], yx[1]) for yx in yx_param]
+	plot(xy_pe, label = "PE", xlabel = "Num. Gradient Steps", ylabel = "MC Value Error - Train", title = "Params vs. PE, Value Pred, SinWave Regress, Train")
+	plot!(xy_param, label = "parameters")
+end
+
+# ╔═╡ f4a57268-91f6-469a-88ea-11f55db5bc6d
+begin
+	yx_pe_test = PE_agent.measurement_dict["mc_loss_value_test_buffer"]
+	yx_param_test = param_agent.measurement_dict["mc_loss_value_test_buffer"]
+	xy_pe_test = [(yx[2], yx[1]) for yx in yx_pe_test]
+	xy_param_test = [(yx[2], yx[1]) for yx in yx_param_test]
+	plot(xy_pe_test, label = "PE", xlabel = "Num. Gradient Steps", ylabel = "MC Value Error - Test", title = "Params vs. PE, Value Pred, SinWave Regress, Test")
+	plot!(xy_param_test, label = "parameters")
+end
+
 # ╔═╡ Cell order:
 # ╠═d90972e6-e388-11ec-37c4-7b94db602b40
 # ╠═eec595bf-a788-415a-9619-8e68a5d11a6a
@@ -216,3 +239,6 @@ train_agent(PE_agent,
 # ╠═4a2d41ec-37fc-4f54-9b86-d43fa92009d9
 # ╠═242884a4-03a0-4c6e-8073-783ac15fcab1
 # ╠═bc0588ea-fbfb-41ea-bc30-1952df59e393
+# ╠═8de4578b-3f74-4de6-b440-08b1dcaf5c07
+# ╠═23074fa6-7695-440f-9eaa-a56c5241c77b
+# ╠═f4a57268-91f6-469a-88ea-11f55db5bc6d
