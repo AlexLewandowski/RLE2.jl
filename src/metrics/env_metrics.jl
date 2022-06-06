@@ -336,7 +336,7 @@ function rollout_returns_optenv(
         losses = [env.acc[2]]
         norms = []
         for j = 1:max_steps
-            ex, _ = interact!(env, agent, greedy, policy = policy)
+            ex, _ = interact!(env, agent, greedy = greedy, policy = policy)
 
             est_norm = calc_norm(env)
             push!(as, ex.a)
@@ -409,7 +409,7 @@ function rollout_returns_curriculum(
             G = mean(result[1])
             lens = reshape(result[2], :)
             # G = mean(lens .< 199)
-            ex, _ = interact!(env, agent, greedy, policy = policy)
+            ex, _ = interact!(env, agent, greedy = greedy, policy = policy)
 
             push!(teacher_as, ex.a[1])
             push!(teacher_Gs, G)

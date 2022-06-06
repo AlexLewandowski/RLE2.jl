@@ -270,8 +270,8 @@ end
 
 function interact!(
     env,
-    agent,
-    greedy = false;
+    agent;
+    greedy = false,
     policy = :agent,
     reward_only = false,
     buffer = nothing,
@@ -391,7 +391,7 @@ function generate_episode(
 
     while !done
         step += 1
-        ex, done = interact!(env, agent, greedy, policy = policy)
+        ex, done = interact!(env, agent, greedy = greedy, policy = policy)
         episode[step] = ex
 
         if step == max_steps

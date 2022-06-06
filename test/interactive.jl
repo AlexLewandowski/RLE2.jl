@@ -33,8 +33,8 @@ corruption_rate = 0.0f0
 # seed = 10101827296962
 seed = 6951693
 Random.seed!(2 * seed + 1)
-state_representation = "PVN_10"
-# state_representation = "PD-y_10"
+# state_representation = "PVN_10"
+state_representation = "PE-y_20"
 pooling_func = :mean
 recurrent_action = 0
 buffer_rng = MersenneTwister(3 * seed - 1)
@@ -42,7 +42,7 @@ overlap = false
 
 # env, max_agent_steps, embedding_f = RLE2.get_env("CartPole", skip = skip, seed = seed, max_steps = max_episode_length)
 env, max_agent_steps, embedding_f = RLE2.get_env(
-    "OptEnv-NoLP-syntheticCluster-SGD",
+    "OptEnv-FiniteHorizon10-sinWave-ADAM",
     skip = skip,
     seed = seed,
     max_steps = max_episode_length,
