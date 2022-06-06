@@ -56,7 +56,7 @@ function transform_state(env, s_dict, teacher_action)
     elseif env.state_representation == :parameters
         state = s_dict[:params]
 
-    elseif split(string(env.state_representation), "_")[1] == "PD-x"
+    elseif split(string(env.state_representation), "_")[1] == "PE-x"
         state = s_dict[:buffer]
 
     elseif env.state_representation == :parameters_policy

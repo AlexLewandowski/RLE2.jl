@@ -61,6 +61,6 @@ callback_funcs = """
 # lr = "[0.001, 0.0005, 0.0001]"
 lr = "[0.0005]"
 seed = "using Random; rand(MersenneTwister(4949215), 1:10^10, 30)"
-state_representation = ["PVN_20", "PD-xy_128", "PD-0_128", "PD-x_128", "PD-xy_128", "parameters"]
+state_representation = ["PVN_20", "PE-xy_128", "PE-0_128", "PE-x_128", "PE-xy_128", "parameters"]
 EnvType = ["OptEnv-NoLP-syntheticCluster-SGD"]
 pooling_func = ["mean"]

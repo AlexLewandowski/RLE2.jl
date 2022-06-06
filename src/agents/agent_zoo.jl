@@ -37,7 +37,7 @@ function get_agent(
     state_encoder = NeuralNetwork(Chain(identity))
     encode_dim = Int(floor(hidden_size / 4))
     if typeof(env) <: Union{UnionCurriculumMDP,AbstractOptEnv,MetaEnv}
-        if contains(string(env.state_representation), "ep") || contains(string(env.state_representation), "PD") || contains(string(env.state_representation), "PVN")
+        if contains(string(env.state_representation), "ep") || contains(string(env.state_representation), "PE") || contains(string(env.state_representation), "PVN")
 
             if !contains(env.state_representation, "PVN")
                 aux_dim, s_dim, a_dim, L, T = Int.(obs[end-4:end])
@@ -55,7 +55,7 @@ function get_agent(
             out_dim = hidden_size
             joint_encode_dim = encode_dim_s + encode_dim_a
 
-            if contains(string(env.state_representation), "buffer") || contains(string(env.state_representation), "PD")
+            if contains(string(env.state_representation), "buffer") || contains(string(env.state_representation), "PE")
                 As = meta_state_encoder(repeat([s_dim],L), repeat([a_dim],L), encode_dim, seed, aux_dim = aux_dim, σ = activation, pooling_f = kwargs[:pooling_func])
             elseif contains(string(env.state_representation), "PVN")
 
