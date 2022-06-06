@@ -1632,7 +1632,7 @@ function get_next_obs_with_f(
         aux = Float32.([log(env.opt.eta), t, acc, acc_test])
         return aux
 
-    elseif contains(state_rep_str[1], "PD")
+    elseif contains(state_rep_str[1], "PE")
         if isnothing(task_id)
             N2 = Int(N / env.n_tasks)
             ind_range = env.ind_range
@@ -1701,7 +1701,7 @@ function get_next_obs_with_f(
 
         meta_data_list = []
 
-        if state_rep_str[1] == "PD-0-grad"
+        if state_rep_str[1] == "PE-0-grad"
             for i = 1:1
                 inds_local = StatsBase.sample(env.rng, 1:N, M, replace = false)
                 x_local = retrieve_with_inds(env, env.x, inds_local)# |> env.device
@@ -1736,7 +1736,7 @@ function get_next_obs_with_f(
                 push!(meta_data_list, z_)
             end
 
-        elseif state_rep_str[1] == "PD-x-grad"
+        elseif state_rep_str[1] == "PE-x-grad"
             meta_data_list = [x_]
             for i = 1:1
                 inds_local = StatsBase.sample(env.rng, 1:N, M, replace = false)
@@ -1772,7 +1772,7 @@ function get_next_obs_with_f(
                 push!(meta_data_list, z_)
             end
 
-        elseif state_rep_str[1] == "PD-y-grad"
+        elseif state_rep_str[1] == "PE-y-grad"
             if t == env.max_steps
                 hist = zeros(size(y_))
             else
@@ -1796,16 +1796,16 @@ function get_next_obs_with_f(
 
             # end
 
-        elseif state_rep_str[1] == "PD-xy"
+        elseif state_rep_str[1] == "PE-xy"
             meta_data_list = [x_, y]
 
-        elseif state_rep_str[1] == "PD-x"
+        elseif state_rep_str[1] == "PE-x"
             meta_data_list = [x_]
 
-        elseif state_rep_str[1] == "PD-y"
+        elseif state_rep_str[1] == "PE-y"
             meta_data_list = [y]
 
-        elseif state_rep_str[1] == "PD-0"
+        elseif state_rep_str[1] == "PE-0"
             # Only outputs needed, handled in outer code
         else
             error("Not valid: ", state_rep_str)

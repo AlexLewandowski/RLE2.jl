@@ -12,7 +12,6 @@ mutable struct Subagent{P<:AbstractModel} <: AbstractSubagent
     train_freq::Int64
     update_freq::Int64
     update_count::Int64
-    update_cache::Int64
     callbacks::AbstractArray
     loss::Function
     training_proc::Function
@@ -28,7 +27,6 @@ function Subagent(
     submodels::NamedTuple,
     gamma::Float32,
     update_freq::Int64,
-    update_cache::Int64,
     num_grad_steps::Int64,
     loss::Any,
     opt::Any,
@@ -56,7 +54,6 @@ function Subagent(
         train_freq,
         update_freq,
         0,
-        update_cache,
         callbacks,
         loss,
         training_proc,

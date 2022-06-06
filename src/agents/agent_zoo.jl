@@ -7,7 +7,6 @@ function get_agent(
     measurement_funcs::AbstractArray,
     gamma::Float32,
     update_freq::Int64,
-    update_cache::Int64,
     predict_window,
     history_window,
     num_layers,
@@ -38,7 +37,7 @@ function get_agent(
     state_encoder = NeuralNetwork(Chain(identity))
     encode_dim = Int(floor(hidden_size / 4))
     if typeof(env) <: Union{UnionCurriculumMDP,AbstractOptEnv,MetaEnv}
-        if contains(string(env.state_representation), "ep") || contains(string(env.state_representation), "PD") || contains(string(env.state_representation), "PVN")
+        if contains(string(env.state_representation), "ep") || contains(string(env.state_representation), "PE") || contains(string(env.state_representation), "PVN")
 
             if !contains(env.state_representation, "PVN")
                 aux_dim, s_dim, a_dim, L, T = Int.(obs[end-4:end])
@@ -56,7 +55,7 @@ function get_agent(
             out_dim = hidden_size
             joint_encode_dim = encode_dim_s + encode_dim_a
 
-            if contains(string(env.state_representation), "buffer") || contains(string(env.state_representation), "PD")
+            if contains(string(env.state_representation), "buffer") || contains(string(env.state_representation), "PE")
                 As = meta_state_encoder(repeat([s_dim],L), repeat([a_dim],L), encode_dim, seed, aux_dim = aux_dim, σ = activation, pooling_f = kwargs[:pooling_func])
             elseif contains(string(env.state_representation), "PVN")
 
@@ -162,7 +161,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             Flux.Losses.logitcrossentropy,
             optimizer(lr),
@@ -191,7 +189,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -222,7 +219,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -266,7 +262,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -281,7 +276,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -315,7 +309,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             policy_loss,
             optimizer(lr),
@@ -351,7 +344,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             quantile_huber_loss,
             optimizer(lr),
@@ -379,7 +371,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -408,7 +399,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -442,7 +432,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -468,7 +457,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -492,7 +480,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -515,7 +502,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             squared,
             optimizer(lr),
@@ -538,7 +524,6 @@ function get_agent(
             submodels,
             gamma,
             update_freq,
-            update_cache,
             num_grad_steps,
             policygradient,
             optimizer(lr),

@@ -4,7 +4,6 @@ function get_agent(env::CartPoleEnv)
     measurement_funcs = []
     gamma = 0.99f0
     update_freq = 4
-    update_cache = 0
     predict_window = 0 #TODO should be both 0 or 1
     history_window = 1 #TODO should be both 0 or 1
     num_layers = 2
@@ -44,7 +43,6 @@ function get_agent(env::CartPoleEnv)
                       measurement_funcs,
                       gamma,
                       update_freq,
-                      update_cache,
                       predict_window,
                       history_window,
                       num_layers,

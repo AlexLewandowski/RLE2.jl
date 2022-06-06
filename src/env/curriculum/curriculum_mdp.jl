@@ -301,7 +301,7 @@ function CurriculumMDP(
         state_encoder = nothing
         student_action_encoder = nothing
 
-    elseif split(string(state_representation), "_")[1] == "PD-x"
+    elseif split(string(state_representation), "_")[1] == "PE-x"
 
         println(string(state_representation))
         if length(string(state_representation)) == 8
@@ -491,7 +491,7 @@ function post_episode_state(env::AbstractCurriculumMDP, action)
         D[:buffer] = copy(buffer_state)
 
 
-    elseif split(string(state_representation), "_")[1] == "PD-x"
+    elseif split(string(state_representation), "_")[1] == "PE-x"
         step = 0
         a_dim = prod(size(get_actions(env.student_env)))
         s_dim = prod(size(get_obs(env.student_env)))
@@ -697,7 +697,7 @@ function reinitialize_state(env::AbstractCurriculumMDP)
             env.state = [[], reshape(env.state, (n_states, n_actions)) , 0, 0]
         end
 
-    elseif split(string(state_representation), "_")[1] == "PD-x"
+    elseif split(string(state_representation), "_")[1] == "PE-x"
         if length(string(state_representation)) == 8
             # batch_size = 128
         else
@@ -826,7 +826,7 @@ function rollout_student(
         gamma = 1.0
 
         while !done
-            experience, done = interact!(student_env, student_agent, greedy)
+            experience, done = interact!(student_env, student_agent, greedy = greedy)
             if learning
                 add_exp!(buffer, experience)
                 train_offline_subagents(env.student_agent, 1, reg = false)
@@ -873,7 +873,7 @@ function rollout_student_tandem(
         gamma = 1.0
         while !done
             teacher_action!(env, action)
-            experience, done = interact!(student_env, student_agent, greedy)
+            experience, done = interact!(student_env, student_agent, greedy = greedy)
             if learning
                 add_exp!(student_agent.buffers.train_buffer, experience)
                 if is_tabular(env.student_env)
@@ -924,7 +924,7 @@ function rollout_student(
         G = 0.0f0
         gamma = 1.0
         while !done
-            experience, done = interact!(student_env, student_agent, greedy)
+            experience, done = interact!(student_env, student_agent, greedy = greedy)
             if learning
                 add_exp!(student_agent.buffers.train_buffer, experience)
                 if is_tabular(env.student_env)

@@ -150,7 +150,6 @@ function run_experiment(config::Dict; test = false)
         measurement_funcs,
         gamma,
         update_freq,
-        update_cache,
         predict_window,
         history_window,
         num_layers,
@@ -205,7 +204,7 @@ function run_experiment(config::Dict; test = false)
             while !done
                 RLE2.train_subagents(agent, reg = reg)
                 for _ = 1:num_env_steps
-                    done = RLE2.interact!(env, agent, false, buffer = train_buffer)
+                    done = RLE2.interact!(env, agent, greedy = false, buffer = train_buffer)
                     if step == max_agent_steps || done
                         RLE2.finish_episode(train_buffer)
                         done = true
