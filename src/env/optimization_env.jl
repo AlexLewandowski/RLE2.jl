@@ -1080,16 +1080,20 @@ function optimize_student_metrics(
     f = :new,
     value = false
 )
-    adapted_performance = []
-    performance = []
 
-    adapted_test_performance = []
+    performance = []
     test_performance = []
+
+    learned_init_performance = []
+    learned_init_test_performance = []
+
+    adapted_performance = []
+    adapted_test_performance = []
+
     env = deepcopy(en)
 
     p, re = Flux.destructure(env.init_f.f)
     env.init_f = NeuralNetwork(re(p))
-
 
     # for i in env.task_inds
     for i in 1:4
@@ -1117,6 +1121,18 @@ function optimize_student_metrics(
 
 
         reset!(env, task_id = i, saved_f = f)
+
+        if value
+            train_perf = sum([e.r for e in ep])
+            test_perf = train_perf
+        else
+            train_perf = calc_performance(env, mode = :train, f = env.f, for_reward = false)
+            test_perf = calc_performance(env, mode = :test, f = env.f, for_reward = false)
+        end
+
+        push!(learned_init_performance, train_perf)
+        push!(learned_init_test_performance, test_perf)
+
         ep = generate_episode(
             env,
             agent,
@@ -1137,26 +1153,31 @@ function optimize_student_metrics(
     rs = [
         mean(adapted_performance),
         mean(adapted_test_performance),
+        mean(learned_init_performance),
+        mean(learned_init_test_performance),
         mean(performance),
         mean(test_performance),
     ]
     names = [
         "adapted_performance",
         "adapted_test_performance",
-        "nonadapted_performance",
-        "nonadapted_test_performance",
+        "learned_init_performance",
+        "learned_init_test_performance",
+        "init_performance",
+        "init_test_performance",
     ]
     return rs, names
 end
 
 
 function fomaml_student(
-    env::AbstractOptEnv,
-    buffer;
+    agent,
+    env::AbstractOptEnv;
     n_steps = 200,
     return_gs = false,
     greedy = false
 )
+    buffer = agent.buffers.train_buffer
     in_dim = env.in_dim
     out_dim = env.out_dim
     device = env.device
@@ -1310,12 +1331,12 @@ function optimize_student(
     t = nothing,
     debug = false,
 )
-
     device = agent.device
     data_size = env.data_size
     rng = env.rng
 
-    # @assert env.t == env.max_steps
+
+# @assert env.t == env.max_steps
     t = env.max_steps
 
     # if !isnothing(t)
