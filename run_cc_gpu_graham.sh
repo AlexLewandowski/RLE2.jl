@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=24G
-#SBATCH --time=0-3:00
+#SBATCH --time=0-12:00
 module load julia/1.6.2 cuda cudnn
 export CUDA_ROOT=$EBROOTCUDNN
 

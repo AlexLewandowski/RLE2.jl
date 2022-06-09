@@ -1170,7 +1170,7 @@ function optimize_student_metrics(
 end
 
 
-function fomaml_student(
+function optimize_fomaml_student(
     agent,
     env::AbstractOptEnv;
     n_steps = 200,
