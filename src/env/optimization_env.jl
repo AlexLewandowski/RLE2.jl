@@ -1319,8 +1319,16 @@ function get_sum_grad(env, agent, f, ps; deterministic = false, t = nothing)
     return gs
 end
 
+function optimize_student(agent, env)
+    if env.state_representation == "parameters"
+        optimize_fomaml_student(agent, env)
+    else
+        optimize_value_student(agent,env)
+    end
+end
+
 using Optim, FluxOptTools
-function optimize_student(
+function optimize_value_student(
     agent,
     env::AbstractOptEnv;
     n_steps = 1,
