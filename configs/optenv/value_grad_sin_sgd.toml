@@ -1,5 +1,5 @@
 [config]
-save_dir="results/optenv_valuegrad_sinwave/"
+save_dir="results/optenv_valuegrad_sinwave_sgd/"
 exp_file="experiment/experiment.jl"
 exp_module_name = "Main"
 exp_func_name = "run_experiment"

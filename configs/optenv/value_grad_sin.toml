@@ -55,7 +55,7 @@ callback_funcs = """
 
 [sweep_args]
 lr = "[0.001, 0.0005, 0.0001]"
-seed = "using Random; rand(MersenneTwister(10010111215), 1:10^10, 3)"
+seed = "using Random; rand(MersenneTwister(10010111215), 1:10^10, 30)"
 # state_representation = ["PE-y-grad_20"]
 # EnvType = ["OptEnv-FiniteHorizon10-sinWave-ADAM"]
 state_representation = ["parameters", "PE-y_20"]
