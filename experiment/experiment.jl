@@ -38,6 +38,8 @@ function run_experiment(config::Dict; test = false)
 
     overlap = config["overlap"]
     gamma = Float32(config["gamma"])
+    drop_rate = Float32(config["drop_rate"])
+    reg = Float32(config["reg"])
 
     AgentType = config["AgentType"]
     EnvType = config["EnvType"]
@@ -204,7 +206,7 @@ function run_experiment(config::Dict; test = false)
             while !done
                 RLE2.train_subagents(agent, reg = reg)
                 for _ = 1:num_env_steps
-                    done = RLE2.interact!(env, agent, greedy = false, buffer = train_buffer)
+                    done = RLE2.interact!(env, agent, false, buffer = train_buffer)
                     if step == max_agent_steps || done
                         RLE2.finish_episode(train_buffer)
                         done = true
