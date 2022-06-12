@@ -764,8 +764,8 @@ function calc_performance(
             scale = 10
             r = env.J(f, x, y)
 
-            # return -minimum([r, scale])/scale
-            reward = -1 / (1 / r + 1)
+            return -minimum([r, scale])/scale
+            # reward = -1 / (1 / r + 1)
             # reward = -r
             # return reward
 

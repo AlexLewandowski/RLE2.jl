@@ -125,7 +125,7 @@ function run_experiment(config::Dict; test = false)
     test_buffer = deepcopy(train_buffer)
     test_buffer.name = "test_buffer"
 
-    total_reports = 200
+    total_reports = 100
 
     if num_episodes < total_reports
         total_reports = num_episodes
