@@ -764,9 +764,9 @@ function calc_performance(
             scale = 10
             r = env.J(f, x, y)
 
-            return -minimum([r, scale])/scale
+            # return -minimum([r, scale])/scale
             # reward = -1 / (1 / r + 1)
-            # reward = -r
+            reward = -r
             # return reward
 
             # println(reward)
@@ -947,8 +947,8 @@ function (env::AbstractOptEnv)(a)
     elseif env.reward_function == "FiniteHorizon"
         # LP = 0.99*acc_new - acc_old
 
-        env.reward = acc_new
-        # env.reward = acc_new_test
+        # env.reward = acc_new
+        env.reward = acc_new_test
         # env.reward = 0f0
         # env.reward = LP
     else
@@ -1072,13 +1072,72 @@ end
 
 function Random.seed!(env::AbstractOptEnv, seed) end
 
+function optimize_student_metrics_estvalue(
+    agent,
+    env::AbstractOptEnv;
+    )
+    rs, ns = optimize_student_metrics(agent, env, est_value = true)
+    ns = ["est_value_"*n for n in ns]
+    return rs, ns
+    end
+
+function optimize_student_metrics_value(
+    agent,
+    env::AbstractOptEnv;
+    )
+    rs, ns = optimize_student_metrics(agent, env, value = true)
+    ns = ["mc_value_"*n for n in ns]
+    return rs, ns
+    end
+
+
+function optimize_student_metrics_transfer(
+    agent,
+    env::AbstractOptEnv;
+    )
+    env = deepcopy(env)
+    rng = env.rng
+    data_size = env.data_size
+    xs = []
+    xs_test = []
+    ys = []
+    ys_test = []
+    env.n_tasks = 4
+
+    for task_id = 1:4
+    # for task_id = 1:env.n_tasks
+        x = Float32.(reshape((5 - (-5)) .* rand(rng, data_size) .- 5.0f0, (1, data_size)))
+        x_test =
+            Float32.(reshape((5 - (-5)) .* rand(rng, data_size) .- 5.0f0, (1, data_size)))
+
+        y = generate_sin_targets(x, task_id + env.n_tasks)
+        y_test = generate_sin_targets(x_test, task_id + env.n_tasks)
+
+        push!(xs_test, x_test)
+        push!(xs, x)
+
+        push!(ys_test, y_test)
+        push!(ys, y)
+    end
+
+    env.x = cat(xs..., dims = 2)
+    env.y = cat(ys..., dims = 2)
+    env.x_test = cat(xs_test..., dims = 2)
+    env.y_test = cat(ys_test..., dims = 2)
+    rs, ns = optimize_student_metrics(agent, env)
+    ns = ["transfer_"*n for n in ns]
+    return rs, ns
+end
+
+
 function optimize_student_metrics(
     agent,
     en::AbstractOptEnv;
     n_steps = 1000,
     return_gs = false,
     f = :new,
-    value = false
+    value = false,
+    est_value = false,
 )
 
     performance = []
@@ -1111,6 +1170,9 @@ function optimize_student_metrics(
         if value
             train_perf = sum([e.r for e in ep])
             test_perf = train_perf
+        elseif est_value
+            train_perf = sum(agent.subagents[1](ep[1].o |> agent.device))
+            test_perf = train_perf
         else
             train_perf = calc_performance(env, mode = :train, f = env.f, for_reward = false)
             test_perf = calc_performance(env, mode = :test, f = env.f, for_reward = false)
@@ -1124,6 +1186,9 @@ function optimize_student_metrics(
 
         if value
             train_perf = sum([e.r for e in ep])
+            test_perf = train_perf
+        elseif est_value
+            train_perf = sum(agent.subagents[1](ep[1].o |> agent.device))
             test_perf = train_perf
         else
             train_perf = calc_performance(env, mode = :train, f = env.f, for_reward = false)
@@ -1142,6 +1207,9 @@ function optimize_student_metrics(
         )
         if value
             train_perf = sum([e.r for e in ep])
+            test_perf = train_perf
+        elseif est_value
+            train_perf = sum(agent.subagents[1](ep[1].o |> agent.device))
             test_perf = train_perf
         else
             train_perf = calc_performance(env, mode = :train, f = env.f, for_reward = false)
@@ -1222,8 +1290,8 @@ function optimize_fomaml_student(
             StatsBase.sample(env.rng, ind_range, env.batch_size, replace = false)
         end
 
-        x = retrieve_with_inds(env, env.x, inds)# |> env.device
-        y = retrieve_with_inds(env, env.y, inds)# |> env.device
+        x = retrieve_with_inds(env, env.x_test, inds)# |> env.device
+        y = retrieve_with_inds(env, env.y_test, inds)# |> env.device
 
         push!(xs, x)
         push!(ys, y)
@@ -1553,13 +1621,9 @@ function optimize_value_student(
         # end
     end
 
-    # p, re = Flux.destructure(f.f)
-    # env.f = NeuralNetwork(re(p))
-    # env.obs = get_next_obs(env)
-    # v_post = get_mean_v(env, agent, f, deterministic = true)
-    # println("V post: ", v_post)
-
-
+    p, re = Flux.destructure(f.f)
+    env.f = NeuralNetwork(re(p))
+    env.obs = get_next_obs(env)
 
 
     # G_norm_post = sum(LinearAlgebra.norm, gs)
@@ -1704,10 +1768,10 @@ function get_next_obs_with_f(
 
         y_ = f(x_)
 
-        if env.dataset_name == "sinWave"
-            scale = 10f0
-            y_ = clamp.(y_, -scale, scale)/scale
-        end
+        # if env.dataset_name == "sinWave"
+        #     scale = 10f0
+        #     y_ = clamp.(y_, -scale, scale)/scale
+        # end
 
         # y_ = (y_ .- y).^2
 

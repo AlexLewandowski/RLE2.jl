@@ -93,6 +93,10 @@ function run_experiment(config::Dict; test = false)
     end
 
     Random.seed!(2 * seed + 1)
+    if contains(EnvType, "OptEnv") && state_representation == :parameters && RLE2.optimize_student in callback_funcs
+        num_grad_steps = 0
+        max_num_episodes = batch_size + 1
+    end
 
     env, max_agent_steps, embedding_f = RLE2.get_env(
         EnvType,

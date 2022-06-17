@@ -11,7 +11,7 @@ post_exp = "gen_metric_dict"
 init_num_episodes = 128
 init_policy = "default"
 num_episodes = 10000
-num_grad_steps = 1
+num_grad_steps = 10
 num_env_steps = 1
 batch_size = 128
 max_num_episodes = 1000
@@ -48,16 +48,18 @@ measurement_funcs = """
                   estimate_termvalue,
                   mc_buffer_loss,
                   optimize_student_metrics,
+                  optimize_student_metrics_transfer,
+                  optimize_student_metrics_estvalue,
+                  optimize_student_metrics_value,
 """
 callback_funcs = """
                optimize_student,
 """
 
 [sweep_args]
-lr = "[0.001, 0.0005, 0.0001]"
+lr = "[0.001, 0.0005]"
 seed = "using Random; rand(MersenneTwister(10010111215), 1:10^10, 10)"
-# state_representation = ["PE-y-grad_20"]
-# EnvType = ["OptEnv-FiniteHorizon10-sinWave-ADAM"]
 state_representation = ["parameters", "PE-y_20"]
-EnvType = ["OptEnv-FiniteHorizon1-sinWave-SGD"]
+# state_representation = ["PE-y_20"]
+EnvType = ["OptEnv-FiniteHorizon1-sinWave-ADAM"]
 pooling_func = ["mean"]
