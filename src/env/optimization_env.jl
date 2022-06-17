@@ -1120,10 +1120,16 @@ function optimize_student_metrics_transfer(
         push!(ys, y)
     end
 
-    env.x = cat(xs..., dims = 2)
-    env.y = cat(ys..., dims = 2)
-    env.x_test = cat(xs_test..., dims = 2)
-    env.y_test = cat(ys_test..., dims = 2)
+    x = cat(xs..., dims = 2)
+    y = cat(ys..., dims = 2)
+    x_test = cat(xs_test..., dims = 2)
+    y_test = cat(ys_test..., dims = 2)
+
+    env.x = x |> env.device
+    env.y = y |> env.device
+    env.x_test = x_test |> env.device
+    env.y_test = y_test |> env.device
+
     rs, ns = optimize_student_metrics(agent, env)
     ns = ["transfer_"*n for n in ns]
     return rs, ns
