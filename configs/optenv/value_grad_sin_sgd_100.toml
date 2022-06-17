@@ -59,7 +59,7 @@ callback_funcs = """
 [sweep_args]
 lr = "[0.001, 0.0005]"
 seed = "using Random; rand(MersenneTwister(10010111215), 1:10^10, 10)"
-# state_representation = ["parameters", "PE-y_20"]
-state_representation = ["PE-y_20"]
+state_representation = ["parameters", "PE-y_20"]
+# state_representation = ["PE-y_20"]
 EnvType = ["OptEnv-FiniteHorizon100-sinWave-ADAM"]
 pooling_func = ["mean"]
