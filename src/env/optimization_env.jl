@@ -761,12 +761,12 @@ function calc_performance(
     end
     if env.dataset_name == "sinWave"
         if for_reward
-            scale = 10
+            # scale = 10
             r = env.J(f, x, y)
 
             # return -minimum([r, scale])/scale
-            reward = -1 / (1 / r + 1)
-            # reward = -r
+            # reward = -1 / (1 / r + 1)
+            reward = -r
             # return reward
 
             # println(reward)
@@ -1553,9 +1553,9 @@ function optimize_value_student(
         # end
     end
 
-    # p, re = Flux.destructure(f.f)
-    # env.f = NeuralNetwork(re(p))
-    # env.obs = get_next_obs(env)
+    p, re = Flux.destructure(f.f)
+    env.f = NeuralNetwork(re(p))
+    env.obs = get_next_obs(env)
     # v_post = get_mean_v(env, agent, f, deterministic = true)
     # println("V post: ", v_post)
 
@@ -1704,10 +1704,10 @@ function get_next_obs_with_f(
 
         y_ = f(x_)
 
-        if env.dataset_name == "sinWave"
-            scale = 10f0
-            y_ = clamp.(y_, -scale, scale)/scale
-        end
+        # if env.dataset_name == "sinWave"
+        #     scale = 10f0
+        #     y_ = clamp.(y_, -scale, scale)/scale
+        # end
 
         # y_ = (y_ .- y).^2
 
