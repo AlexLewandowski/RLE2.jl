@@ -948,8 +948,8 @@ function (env::AbstractOptEnv)(a)
         # LP = 0.99*acc_new - acc_old
 
         # env.reward = acc_new
-        env.reward = acc_new_test
-        # env.reward = 0f0
+        # env.reward = acc_new_test
+        env.reward = 0f0
         # env.reward = LP
     else
         error("Not a valid reward function")
@@ -960,8 +960,8 @@ function (env::AbstractOptEnv)(a)
         env.reward = 0.0f0
 
         if env.reward_function == "FiniteHorizon"
-            env.reward = acc_new
-            # env.reward = acc_new_test
+            # env.reward = acc_new
+            env.reward = acc_new_test
         end
     end
 

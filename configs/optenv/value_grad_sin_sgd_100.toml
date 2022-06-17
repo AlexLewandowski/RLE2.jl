@@ -10,8 +10,8 @@ post_exp = "gen_metric_dict"
 [static_args]
 init_num_episodes = 128
 init_policy = "default"
-num_episodes = 20000
-num_grad_steps = 10
+num_episodes = 10000
+num_grad_steps = 1
 num_env_steps = 1
 batch_size = 128
 max_num_episodes = 256
@@ -59,6 +59,7 @@ callback_funcs = """
 [sweep_args]
 lr = "[0.001, 0.0005]"
 seed = "using Random; rand(MersenneTwister(10010111215), 1:10^10, 10)"
-state_representation = ["parameters", "PE-y_20"]
+# state_representation = ["parameters", "PE-y_20"]
+state_representation = ["PE-y_20"]
 EnvType = ["OptEnv-FiniteHorizon100-sinWave-ADAM"]
 pooling_func = ["mean"]
