@@ -62,8 +62,6 @@ function OptEnv(
 )
     internal_opt1 = Flux.ADAM()
     internal_opt2 = Flux.ADAM()
-    # internal_opt1 = Flux.RMSProp()
-    # internal_opt2 = Flux.RMSProp()
     internal_opt = [internal_opt1, internal_opt2]
 
     if optimizer == "ADAM"
@@ -228,7 +226,6 @@ function OptEnv(
     t = max_steps
     acc = [0.0f0, 0.0f0, 0.0f0]
 
-    # opt = opt()
     alpha = 0.0f0
 
     p, re = Flux.destructure(f.f)
@@ -349,16 +346,8 @@ function init_nn(
     elseif dataset_name == "cifar10"
         f = NeuralNetwork(LeNet5(imgsize = (32, 32, 3)))
     else
-        # h_dim = rand(env.rng, [16, 32, 64, 128, 256])
-        # h_dim = 16
         output_act = softmax
-        if dataset_name == "sinWave"
-            function clamp_sin(x)
-                return clamp.(x, -5.0f0, 5.0f0)
-                # return 5f0*Flux.tanh.(x)
-            end
-
-            # output_act = clamp_sin
+        if dataset_name == "sinWave" # Regression problems
             output_act = identity
         end
 
@@ -375,7 +364,6 @@ function init_nn(
             ),
         )
     end
-    # f = NeuralNetwork(LeNet5())
     to_device!(f, device)
     return f
 end
@@ -573,9 +561,6 @@ function init_data!(env, data_size, in_dim, out_dim, h_dim, num_layers; rng, dev
     dataset_name = env.dataset_name
     env.fstar = nothing
 
-    # x, y, x_test, y_test, fstar = get_data(dataset_name, data_size, in_dim,
-    #                                        out_dim, h_dim, num_layers; rng, device)
-
     n_tasks = env.n_tasks
     xs = []
     ys = []
@@ -678,13 +663,6 @@ function calc_norm(env::AbstractOptEnv; mode = :test)
     return mean(sum(preds .* log.(preds .+ eps(Float32)), dims = 1))
 end
 
-# function calc_transfer(env::AbstractOptEnv; mode = :test)
-#     env_copy = deepcopy(env)
-#     reset!(env_copy)
-#     train_loop(env_copy)
-#     return calc_performance(env_copy; mode = :test)
-# end
-
 function pretrain_f(env::AbstractOptEnv; task_id = nothing)
 
     if isnothing(task_id)
@@ -761,16 +739,13 @@ function calc_performance(
     end
     if env.dataset_name == "sinWave"
         if for_reward
-            scale = 10
             r = env.J(f, x, y)
 
+            # scale = 10
             # return -minimum([r, scale])/scale
             # reward = -1 / (1 / r + 1)
             reward = -r
-            # return reward
-
-            # println(reward)
-            # return reward
+            return reward
         else
             return env.J(f, x, y)
         end
@@ -825,10 +800,6 @@ end
 function (env::AbstractOptEnv)(a)
 
     if typeof(env.action_space) <: Base.OneTo
-        # action_set = collect(1:5)
-        # action_set = collect(1:9)
-        # action_set = collect(5:9)
-        # a = 2f0^-(action_set[a])
     else
         a = clamp.(a, 0.0f0, 1.0f0)
         env.opt.eta = 0.999f0 * a
@@ -838,7 +809,6 @@ function (env::AbstractOptEnv)(a)
     J = env.J
 
     if typeof(env.opt) <: Flux.ADAM
-        # L1 = 7/4f0
         L1 = 2.0f0
         L2 = 5.0
         if env.dataset_name == "cifar10"
@@ -861,20 +831,9 @@ function (env::AbstractOptEnv)(a)
         env.opt.eta = (env.opt.eta) * L1
     elseif a == 3
     end
-    # if a == 1
-    #     env.opt.eta = (env.opt.eta) * L2
-    # elseif a  == 2
-    #     env.opt.eta = (env.opt.eta) * L1
-    # elseif a == 3
-    # elseif a == 4
-    #     env.opt.eta = (env.opt.eta) / L1
-    # elseif a == 5
-    #     env.opt.eta = (env.opt.eta) / L2
-    # end
 
     env.opt.eta = maximum([env.opt.eta, eps(Float32)])
     env.opt.eta = minimum([env.opt.eta, 0.5f0])
-    # env.opt.eta = maximum([env.opt.eta, 10.0f0^-10])
 
     acc_old = env.acc[1]
     acc_old_test = env.acc[3]
@@ -921,9 +880,7 @@ function (env::AbstractOptEnv)(a)
     elseif env.reward_function == "LP"
         LP = 0.99f0 * acc_new - acc_old
         LP = beta * LP
-        # env.reward = -1.0f0/10 + LP
         env.reward = -1.0f0 + LP
-        # env.reward = LP
     elseif env.reward_function == "logLP"
         LP = loglp(env, acc_new, acc_old, gamma = 0.99f0)
         LP = beta * LP
@@ -945,38 +902,19 @@ function (env::AbstractOptEnv)(a)
         LP = acc_new - acc_old > 0 ? 1.0f0 : -1.0f0
         env.reward = LP
     elseif env.reward_function == "FiniteHorizon"
-        # LP = 0.99*acc_new - acc_old
-
-        # env.reward = acc_new
         # env.reward = acc_new_test
         env.reward = 0f0
-        # env.reward = LP
     else
         error("Not a valid reward function")
     end
 
     if env.done
-        # env.reward += 1.0f0
         env.reward = 0.0f0
 
         if env.reward_function == "FiniteHorizon"
-            # env.reward = acc_new
             env.reward = acc_new_test
         end
     end
-
-    # if any(isnan.(get_params_vector(env.f)))
-    #     env.done = true
-    #     env.reward = -200f0
-    # elseif any(isinf.(get_params_vector(env.f)))
-    #     env.done = true
-    #     env.reward = -200f0
-    # elseif any(isinf.(env.obs))
-    #     env.done = true
-    #     env.reward = -200f0
-    # elseif any(isnan.(env.obs))
-    #     env.done = true
-    #     env.reward = -200f0
 end
 
 function reset!(
@@ -1321,14 +1259,7 @@ function optimize_fomaml_student(
         new_gs.grads[old_f_p] = gs.grads[temp_f_p]
     end
 
-    # println("XS:", sum(xs))
-    # println("YS:", sum(ys))
-    # println("PS temp:", sum(Flux.params(temp_f)[1]))
-    # println("PS PRE:", sum(Flux.params(env.init_f.f)[1]))
-
     Flux.Optimise.update!(opt, Flux.params(env.init_f.f), new_gs)
-
-    # println("PS POST:", sum(Flux.params(env.init_f.f)[1]))
 
     env.f = deepcopy(env.init_f)
 
@@ -1363,7 +1294,6 @@ function get_mean_v(env, agent, f; deterministic = false, t = nothing)
     n_task_sampled = minimum([8, env.n_tasks])
 
     tasks = stop_gradient() do
-        # StatsBase.sample(env.rng, env.task_inds, 4)
         StatsBase.sample(env.rng, 1:env.n_tasks, n_task_sampled, replace = false)
     end
     # tasks = env.task_inds
@@ -1417,18 +1347,9 @@ function optimize_value_student(
     data_size = env.data_size
     rng = env.rng
 
-
-# @assert env.t == env.max_steps
-    t = env.max_steps
-
-    # if !isnothing(t)
-    #     env.t = t
-    # end
-    # env.t = 8
-    # env.t = StatsBase.sample(env.rng, 1:10)
-
-    # env.internal_opt = typeof(env.internal_opt)()
-    # env.internal_opt.eta /= 10
+    if isnothing(t)
+        t = env.max_steps
+    end
 
     default_f = init_nn(env)
 
@@ -1441,9 +1362,6 @@ function optimize_value_student(
     else
         f = env.init_f #TODO cold-start coniditons?
         v_init = sum(agent.subagents[1](get_next_obs_with_f(env, f, t = t) |> agent.device))
-        # opt = typeof(env.internal_opt)()
-        # env.internal_opt = opt
-        # opt = env.internal_opt[1]
     end
 
     # println(i)
@@ -1539,13 +1457,6 @@ function optimize_value_student(
     end
     # opt = typeof(env.internal_opt[1])()
 
-    # println("V init: ", v_init)
-    # println("V default: ", v_default)
-
-    # gs = get_sum_grad(env, agent, f, ps)
-    # G_norm_init = sum(LinearAlgebra.norm, gs)
-    # println("G_norm init: ", G_norm_init)
-
     gs = nothing
     num_reports = 10
     if n_steps > 10
@@ -1588,24 +1499,10 @@ function optimize_value_student(
 
         if mod(i, report_freq) == 0
 
-            #     if !isempty(env.internal_opt[2].state)
-            # ss = env.internal_opt[2].state[env.init_f2.params[1]]
-            # println([sum(s) for s in ss])
-            #     end
-
-            # V = agent.subagents[1](get_next_obs_with_f(env, env.f) |> agent.device)
-            # G_norm = sum(LinearAlgebra.norm, gs)
-            # env_copy = deepcopy(env)
-            # ep = generate_episode(env_copy, agent, policy = 3, state = :dontreset)
-            # println("Init Acc: ", ep[1].info[1][1])
-            # println("Final Acc: ", ep[end].info[1][1])
-            # p rintln("i: ", string(i), " | V : ", V, " | G_norm : ", G_norm)
-            # println("ACC: ", calc_performance(env, f = f, mode = :train))
             if debug
                 println("V: ", get_mean_v(env, agent, f, deterministic = true))
+                # println("ACC: ", calc_performance(env, f = f, mode = :train))
             end
-            # println("ACC_ALL: ", calc_performance(env, mode = :train, f = f, all_data = true))
-            # println("V ALL: ", agent.subagents[1](get_next_obs_with_f(env, f, t = t, all_data = true) |> agent.device))
         end
 
         # ps = nothing
@@ -1631,12 +1528,6 @@ function optimize_value_student(
     env.f = NeuralNetwork(re(p))
     env.obs = get_next_obs(env)
 
-
-    # G_norm_post = sum(LinearAlgebra.norm, gs)
-    # println("G_norm post: ", G_norm_post)
-    # println("ACC: ", calc_performance(env, mode = :train, f = f))
-    # println("ACC_ALL: ", calc_performance(env, mode = :train, f = f, all_data = true))
-
     if return_gs
         return gs
     end
@@ -1647,35 +1538,6 @@ function get_next_obs(env::AbstractOptEnv)
 end
 
 function get_local_improvement(env::AbstractOptEnv, M, f, x)
-    # inds_local = StatsBase.sample(env.rng, env.ind_range, M, replace = false)
-    # x_local = retrieve_with_inds(env, env.x, env.inds)# |> env.device
-    # y_local = retrieve_with_inds(env, env.y, env.inds)# |> env.device
-
-    # opt2 = deepcopy(env.opt)
-    # f2 = deepcopy(f)
-
-    # # println(length(keys(opt2.state)))
-
-    # # new_ps = f2.params
-    # # old_ps = f.params
-
-    # # if typeof(opt2) <: Flux.ADAM
-    # #     if !isempty(opt2.state)
-    # #         opt2.state = IdDict(
-    # #             new_p => (
-    # #                 deepcopy(env.opt.state[old_p][1]),
-    # #                 deepcopy(env.opt.state[old_p][2]),
-    # #                 deepcopy(env.opt.state[old_p][3]),
-    # #             ) for (new_p, old_p) in zip(new_ps, old_ps)
-    # #                 )
-    # #     end
-    # # end
-
-    # update_f(env, opt2, env.J, f2.f, x_local, y_local)
-    # println(length(keys(opt2.state)))
-    # return f2(x)
-
-    # g_vec = vcat([reshape(gs[p], :) for p in env.f.params]...)
     p, re = Flux.destructure(f.f)
     if isempty(env.opt.state)
         Z = zeros(Float32, size(f(x)))
@@ -1762,32 +1624,21 @@ function get_next_obs_with_f(
         inds = stop_gradient() do
             StatsBase.sample(env.rng, ind_range, M, replace = false)
         end
-        # inds = collect(1:N)
 
         if isnothing(xy)
             x_ = retrieve_with_inds(env, env.x, inds)# |> env.device
             y = retrieve_with_inds(env, env.y, inds)# |> env.device
         else
-            x_ = xy[1] |> agent.device
-            y = xy[2] |> agent.device
+            x_ = xy[1] |> env.device
+            y = xy[2] |> env.device
         end
 
         y_ = f(x_)
-
-        # if env.dataset_name == "sinWave"
-        #     scale = 10f0
-        #     y_ = clamp.(y_, -scale, scale)/scale
-        # end
-
-        # y_ = (y_ .- y).^2
 
         if env.reward_function == "FiniteHorizon"
             t = stop_gradient() do
                 positional_encoding([t])
             end
-            # aux = stop_gradient() do
-            #     Float32.([log(env.opt.eta), t])
-            # end
 
             aux = stop_gradient() do
                 Float32.([log(env.opt.eta), t...])
@@ -1803,8 +1654,8 @@ function get_next_obs_with_f(
         if state_rep_str[1] == "PE-0-grad"
             for i = 1:1
                 inds_local = StatsBase.sample(env.rng, 1:N, M, replace = false)
-                x_local = retrieve_with_inds(env, env.x, inds_local)# |> env.device
-                y_local = retrieve_with_inds(env, env.y, inds_local)# |> env.device
+                x_local = retrieve_with_inds(env, env.x, inds_local)
+                y_local = retrieve_with_inds(env, env.y, inds_local)
 
                 opt2 = deepcopy(env.opt)
                 f2 = deepcopy(f)
@@ -1879,21 +1730,6 @@ function get_next_obs_with_f(
             end
 
             meta_data_list = [y, hist]
-            # for i = 1:1
-            #     z_1, z_2 = stop_gradient() do
-            #         get_local_improvement(env, M, f, x_)
-            #     end
-            #     meta_data_list = [y, z_1, z_2]
-
-            #     # z_ = stop_gradient() do
-            #     #     get_local_improvement(env, M, f, x_)
-            #     # end
-            #     # meta_data_list = [y, z_]
-
-            #     # aux_stack = reshape(repeat(aux, M), (aux_dim, M))
-            #     # z_ = cat(z_, aux_stack, dims = 1)
-
-            # end
 
         elseif state_rep_str[1] == "PE-xy"
             meta_data_list = [x_, y]
