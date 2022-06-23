@@ -38,6 +38,8 @@ function run_experiment(config::Dict; test = false)
 
     overlap = config["overlap"]
     gamma = Float32(config["gamma"])
+    drop_rate = config["drop_rate"]
+    reg = Float32(config["reg"])
 
     AgentType = config["AgentType"]
     EnvType = config["EnvType"]
@@ -91,6 +93,10 @@ function run_experiment(config::Dict; test = false)
     end
 
     Random.seed!(2 * seed + 1)
+    if contains(EnvType, "OptEnv") && state_representation == :parameters && RLE2.optimize_student in callback_funcs
+        num_grad_steps = 0
+        max_num_episodes = batch_size + 1
+    end
 
     env, max_agent_steps, embedding_f = RLE2.get_env(
         EnvType,
@@ -123,7 +129,7 @@ function run_experiment(config::Dict; test = false)
     test_buffer = deepcopy(train_buffer)
     test_buffer.name = "test_buffer"
 
-    total_reports = 200
+    total_reports = 100
 
     if num_episodes < total_reports
         total_reports = num_episodes
