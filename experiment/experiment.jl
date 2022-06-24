@@ -92,6 +92,12 @@ function run_experiment(config::Dict; test = false)
         device = Flux.cpu
     end
 
+    if contains(EnvType, "OptEnv") && state_representation == :parameters && contains(callback_funcs)
+        num_grad_steps = 0
+        max_num_episodes = 10
+    end
+
+
     Random.seed!(2 * seed + 1)
     if contains(EnvType, "OptEnv") && state_representation == :parameters && RLE2.optimize_student in callback_funcs
         num_grad_steps = 0

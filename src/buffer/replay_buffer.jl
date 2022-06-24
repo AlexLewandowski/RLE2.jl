@@ -13,9 +13,11 @@ struct Experience{S,O,A}
     op::O
     done::Bool
     info::Any
+    env_t::Float32
+    agent_t::Float32
 end
 
-function Experience(s,o,a,p,r,sp,op,done,info = nothing)
+function Experience(s,o,a,p,r,sp,op,done,info = nothing, env_t = 1f0, agent_t = 1f0)
     S = typeof(s)
     O = typeof(o)
     A = typeof(a)
@@ -209,6 +211,10 @@ function get_batch(buffer::AbstractBuffer)
     done = buffer._done_batch
     info = buffer._info_batch
 
+    agent_t = buffer._agentt_batch
+    env_t = buffer._envt_batch
+    curr_t = buffer._currt_batch
+
     return s, o, a, p, G, sp, op, ap, done, info
 end
 
@@ -216,13 +222,14 @@ function get_batch(buffer, subagent)
     action_encoder = subagent.submodels.action_encoder
     device = subagent.device
     gamma = subagent.gamma
+    t = subagent.update_count
 
-    s, o, a, p, r, sp, op, done, info, discounted_reward_sum, mask, ap, maskp = get_batch(buffer, gamma, device, action_encoder)
+    s, o, a, p, r, sp, op, done, info, discounted_reward_sum, mask, ap, maskp = get_batch(buffer, gamma, device, action_encoder, t = t)
 
     return s, o, a, p, r, sp, op, done, info, discounted_reward_sum, mask, ap, maskp
 end
 
-function get_batch(buffer, gamma::Float32, device, action_encoder)
+function get_batch(buffer, gamma::Float32, device, action_encoder, t = 1)
     s, o, a, p, r, sp, op, ap, done, info = get_batch(buffer)
     discounted_reward_sum = nstep_returns(gamma, device, r, all = true)
     mask = action_encoder(a) |> device
@@ -259,6 +266,9 @@ mutable struct TransitionReplayBuffer{S,O,A} <: AbstractBuffer{S,O,A}
     _ap_batch::AbstractArray{A,2}
     _done_batch::AbstractArray{Bool,3}
     _info_batch::AbstractArray{Any,3}
+    _envt_batch::AbstractArray{Float32,3}
+    _agentt_batch::AbstractArray{Float32,3}
+    _currt_batch::AbstractArray{Float32,3}
 
     gamma::Float32
 
@@ -327,6 +337,9 @@ function TransitionReplayBuffer(
     _ap_batch = Array{A}(undef, H, batch_size)
     _done_batch = Array{Bool}(undef, 1, H, batch_size)
     _info_batch = Array{Any}(undef, 1, H, batch_size)
+    _agentt_batch = Array{Float32}(undef, 1, H, batch_size)
+    _envt_batch = Array{Float32}(undef, 1, H, batch_size)
+    _currt_batch = Array{Float32}(undef, 1, H, batch_size)
 
     buffer =  TransitionReplayBuffer{S,O,A}(
         max_num_episodes,
@@ -351,6 +364,9 @@ function TransitionReplayBuffer(
         _ap_batch,
         _done_batch,
         _info_batch,
+        _agentt_batch,
+        _envt_batch,
+        _currt_batch,
         gamma,
         overlap,
         bootstrap,
@@ -379,6 +395,9 @@ function init_batches(buffer::TransitionReplayBuffer{S,O,A}, batch_size) where {
     buffer._ap_batch = Array{A}(undef, H, batch_size)
     buffer._done_batch = Array{Bool}(undef, 1, H, batch_size)
     buffer._info_batch = Array{Any}(undef, 1, H, batch_size)
+    buffer._envt_batch = Array{Float32}(undef, 1, H, batch_size)
+    buffer._agentt_batch = Array{Float32}(undef, 1, H, batch_size)
+    buffer._currt_batch = Array{Float32}(undef, 1, H, batch_size)
 end
 
 function reset_experience!(buffer::TransitionReplayBuffer{S,O,A}) where {S,O,A}
