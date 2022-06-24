@@ -33,7 +33,7 @@ function curr_size(buffer::AbstractBuffer; online = false)
         idx = buffer._buffer_idx
         if idx == 1
             return sum(buffer._episode_lengths[2:end])
-        else
+ else
             lower = sum(buffer._episode_lengths[1:idx - 1])
             upper = sum(buffer._episode_lengths[idx + 1:end])
             return lower + upper
@@ -224,7 +224,7 @@ function get_batch(buffer, subagent)
     gamma = subagent.gamma
     t = subagent.update_count
 
-    s, o, a, p, r, sp, op, done, info, discounted_reward_sum, mask, ap, maskp = get_batch(buffer, gamma, device, action_encoder, t = t)
+    s, o, a, p, r, sp, op, done, info, discounted_reward_sum, mask, ap, maskp = get_batch(buffer, gamma, device, action_encoder, t)
 
     return s, o, a, p, r, sp, op, done, info, discounted_reward_sum, mask, ap, maskp
 end
