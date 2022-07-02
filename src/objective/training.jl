@@ -19,6 +19,7 @@ function train_subagent(
     training = true,
     batch_size = nothing,
     reg = false,
+    resample = true,
 )
 
     if num_grad_steps === nothing
@@ -32,7 +33,9 @@ function train_subagent(
             bootstrap = true
         end
 
-        StatsBase.sample(buffer, batch_size = batch_size, bootstrap = bootstrap)
+        if resample
+            StatsBase.sample(buffer, batch_size = batch_size, bootstrap = bootstrap)
+        end
 
         if mod(subagent.update_count, subagent.train_freq) == 0
             if typeof(subagent.model.f) <: Tabular

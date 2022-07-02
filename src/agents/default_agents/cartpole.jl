@@ -7,7 +7,7 @@ function get_agent(env::CartPoleEnv)
     predict_window = 0 #TODO should be both 0 or 1
     history_window = 1 #TODO should be both 0 or 1
     num_layers = 2
-    hidden_size = 32
+    hidden_size = 128
     activation = Flux.relu
     drop_rate = 0.0f0
     optimizer = Flux.ADAM
@@ -17,7 +17,7 @@ function get_agent(env::CartPoleEnv)
     force = :offline
 
     max_num_episodes = 1000
-    batch_size = 32
+    batch_size = 1
     overlap = true
     seed = 1
     buffer_rng = MersenneTwister(3*seed-1)

@@ -49,6 +49,14 @@ env, max_agent_steps, embedding_f = RLE2.get_env(
     state_representation = state_representation,
 )
 
+# env, max_agent_steps, embedding_f = RLE2.get_env(
+#     "CartPole_RLOptEnv",
+#     skip = skip,
+#     seed = seed,
+#     max_steps = max_episode_length,
+#     state_representation = state_representation,
+# )
+
 ob = RLE2.get_obs(env)
 s = RLE2.get_state(env)
 
