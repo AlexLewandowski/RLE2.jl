@@ -1,0 +1,67 @@
+[config]
+save_dir="results/rloptenv_cartpole_adapt_policy/"
+exp_file="experiment/experiment.jl"
+exp_module_name = "Main"
+exp_func_name = "run_experiment"
+pre_exp_files = []
+arg_iter_type = "iter"
+post_exp = "gen_metric_dict"
+
+[static_args]
+init_num_episodes = 100
+init_policy = "default"
+num_episodes = 2000
+num_grad_steps = 1
+num_env_steps = 1
+batch_size = 100
+max_num_episodes = 101
+max_episode_length = 200
+history_window = 1
+BufferType = "TransitionReplayBuffer"
+hidden_size = 128
+activation = "relu"
+num_layers = -1
+gamma = 0.99
+optimizer = "ADAM"
+replan = 0
+bootstrap = true
+curriculum = false
+overlap = true
+shaping = false
+force = "online"
+gpu = true
+corruption_rate = 0.0
+drop_rate = 0.0
+reg = false
+continuing = false
+AgentType = "MCValue"
+recurrent_action_dim = 0
+update_freq = 100
+predict_window = 0
+behavior = "default"
+run_traj = false
+measurement_funcs = """
+        online_returns,
+        # buffer_loss,
+        estimate_startvalue,
+        # estimate_termvalue,
+        mc_buffer_loss,
+        optimize_student_metrics,
+        # rollout_returns,
+        # rollout_returns_wide,
+        # rollout_returns_narrow,
+        # rollout_returns_tanh,
+        # rollout_returns_eval_env,
+        # rollout_returns_constant,
+        # action_gap,
+"""
+callback_funcs = """
+        optimize_student,
+"""
+
+[sweep_args]
+lr = "[0.001]"
+seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 30)"
+state_representation = ["PE-x_50", "PE-x_50"]
+EnvType = ["CartPole_RLOptEnv"]
+pooling_func = ["mean"]
