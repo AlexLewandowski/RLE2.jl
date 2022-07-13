@@ -3,7 +3,7 @@ save_dir="results/rloptenv_cartpole_value_error/"
 exp_file="experiment/experiment.jl"
 exp_module_name = "Main"
 exp_func_name = "run_experiment"
-pre_exp_files = ["experiment/random_optenv_data.jl"]
+pre_exp_files = []
 arg_iter_type = "iter"
 post_exp = "gen_metric_dict"
 
