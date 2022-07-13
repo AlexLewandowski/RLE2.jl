@@ -469,7 +469,7 @@ function sample_with_inds(buffer, sample_indices; bootstrap = true)
         end
 
         if length(ep) < H + 2
-            pad_episode!(ep, H + 2)
+            pad_episode!(buffer, ep, H + 2)
         else
             ep = ep[1:H+2]
         end
@@ -563,12 +563,12 @@ function StatsBase.sample(
     buffer._info_batch
 end
 
-function pad_episode!(ep, len)
+function pad_episode!(buffer, ep, len)
     s = ep[end].sp
     o = ep[end].op
     r = 0.0f0
     as = [e.a for e in ep]
-    a = rand(as)
+    a = rand(buffer.rng, as)
     done = true
     p = 0.5f0
     while length(ep) < len

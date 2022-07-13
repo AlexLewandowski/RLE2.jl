@@ -450,7 +450,11 @@ function get_agent(
 
     elseif AgentType == "SARSA"
         model = get_model("ActionValue", model_params)
-        submodels = (value = deepcopy(model), state_encoder = deepcopy(state_encoder))
+        submodels = merge(
+            submodels,
+            (value = model, state_encoder = state_encoder),
+        )
+        target_submodels = deepcopy(submodels)
         dqn_target = (s_network = nothing, sp_network = model, func = v_target)
         subagent = Subagent(
             model,
@@ -473,7 +477,11 @@ function get_agent(
 
     elseif AgentType == "ResidualSARSA"
         model = get_model("ActionValue", model_params)
-        submodels = (value = deepcopy(model), state_encoder = deepcopy(state_encoder))
+        submodels = merge(
+            submodels,
+            (value = model, state_encoder = state_encoder),
+        )
+        target_submodels = deepcopy(submodels)
         dqn_target = (s_network = nothing, sp_network = nothing, func = v_target)
         subagent = Subagent(
             model,
@@ -495,7 +503,11 @@ function get_agent(
 
     elseif AgentType == "ResidualQLearn"
         model = get_model("ActionValue", model_params)
-        submodels = (action_value = deepcopy(model),)
+        submodels = merge(
+            submodels,
+            (value = model, state_encoder = state_encoder),
+        )
+        target_submodels = deepcopy(submodels)
         dqn_target = (s_network = nothing, sp_network = model, func = max_target)
         subagent = Subagent(
             model,
@@ -540,11 +552,13 @@ function get_agent(
         error("Not a valid agent type")
     end
 
+
     if behavior == :deterministic
         policy_model_params = model_params([[:seed, seed], [:hidden_size, 64]])
         π_b = get_model("Policy", policy_model_params)
     elseif behavior == :random
         #TODO random policy
+        π_b = :random
     elseif behavior == :grad
         π_b = :grad
     elseif behavior === nothing
