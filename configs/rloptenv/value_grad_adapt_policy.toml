@@ -20,7 +20,7 @@ history_window = 1
 BufferType = "TransitionReplayBuffer"
 hidden_size = 128
 activation = "relu"
-num_layers = -1
+num_layers = 0
 gamma = 0.99
 optimizer = "ADAM"
 replan = 0
@@ -62,6 +62,6 @@ callback_funcs = """
 [sweep_args]
 lr = "[0.001]"
 seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 30)"
-state_representation = ["PE-x_50", "PE-x_50"]
+state_representation = ["PE-xon_50", "PE-x_50"]
 EnvType = ["CartPole_RLOptEnv"]
 pooling_func = ["mean"]
