@@ -306,12 +306,22 @@ function get_next_obs_with_f(
             reset!(env2)
         end
         done = false
-        # println(curr_size(env.agent.buffers.train_buffer))
-        # println(M)
-        # println(curr_size(env.agent.buffers.train_buffer) < M)
-
+        # stop_gradient() do
+        # while !done
+        #     exp, done = RLE2.interact!(env2, env.agent, policy = :random)
+        #     add_exp!(env.agent.buffers.train_buffer, exp)
+        #     if done
+        #         finish_episode(env.agent.buffers.train_buffer)
+        #         reset!(env2)
+        #     end
+        # end
+        # end
         while curr_size(env.agent.buffers.train_buffer) < M
-            exp, done = RLE2.interact!(env2, env.agent, policy = :random)
+            if state_rep_str[1] == "PE-xon"
+                exp, done = RLE2.interact!(env2, env.agent, policy = :agent)
+            else
+                exp, done = RLE2.interact!(env2, env.agent, policy = :random)
+            end
             add_exp!(env.agent.buffers.train_buffer, exp)
             if done
                 finish_episode(env.agent.buffers.train_buffer)
@@ -324,7 +334,7 @@ function get_next_obs_with_f(
 
 
         data = stop_gradient() do
-            StatsBase.sample(env.agent.buffers.train_buffer, M)
+            StatsBase.sample(env.agent.buffers.train_buffer, M, replacement = true)
             get_batch(env.agent.buffers.train_buffer, env.agent.subagents[1])
         end
 
@@ -515,7 +525,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 1,
+    n_steps = 10,
     return_gs = false,
     greedy = false,
     cold_start = false,

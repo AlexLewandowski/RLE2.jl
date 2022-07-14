@@ -491,8 +491,8 @@ function StatsBase.sample(buffer::Vector{B}; batch_size = nothing, bootstrap = t
     end
 end
 
-function StatsBase.sample(buffer::TransitionReplayBuffer; batch_size = nothing, bootstrap = true)
-    StatsBase.sample(buffer, batch_size; bootstrap = bootstrap)
+function StatsBase.sample(buffer::TransitionReplayBuffer; batch_size = nothing, bootstrap = true, replacement = false,)
+    StatsBase.sample(buffer, batch_size; bootstrap = bootstrap, replacement = replacement)
 end
 
 function StatsBase.sample(
@@ -501,6 +501,7 @@ function StatsBase.sample(
     baseline = true,
     bootstrap = true,
     ind_range = nothing,
+    replacement = false,
 ) where {S,O,A}
 
     bootstrap = buffer.bootstrap
@@ -542,7 +543,7 @@ function StatsBase.sample(
         batch_size = length(sample_indices_temp)
     else
         sample_indices_temp =
-            StatsBase.sample(buffer.rng, list_of_p, batch_size, replace = false)
+            StatsBase.sample(buffer.rng, list_of_p, batch_size, replace = replacement)
     end
 
 

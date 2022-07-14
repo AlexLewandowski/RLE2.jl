@@ -11,10 +11,10 @@ post_exp = "gen_metric_dict"
 init_num_episodes = 100
 init_policy = "default"
 num_episodes = 2000
-num_grad_steps = 1
+num_grad_steps = 10
 num_env_steps = 1
-batch_size = 100
-max_num_episodes = 101
+batch_size = 32
+max_num_episodes = 100
 max_episode_length = 200
 history_window = 1
 BufferType = "TransitionReplayBuffer"
@@ -61,7 +61,7 @@ callback_funcs = """
 
 [sweep_args]
 lr = "[0.001]"
-seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 30)"
+seed = "using Random; rand(MersenneTwister(313292115), 1:10^10, 30)"
 state_representation = ["PE-xon_50", "PE-x_50"]
 EnvType = ["CartPole_RLOptEnv"]
 pooling_func = ["mean"]
