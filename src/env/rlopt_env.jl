@@ -543,15 +543,15 @@ function optimize_value_student(
     end
 
     RLE2.reset!(env)
-    if !greedy
-    if rand() < 0.1
-        # println("NO OPT")
-        # RLE2.reset!(env)
-        return
-    else
-        # println("OPT")
-    end
-    end
+    # if !greedy
+    # if rand() < 0.1
+    #     # println("NO OPT")
+    #     # RLE2.reset!(env)
+    #     return
+    # else
+    #     # println("OPT")
+    # end
+    # end
 
     if isnothing(env.init_state[1])
         f = env.agent.subagents[1].model.f
@@ -601,6 +601,12 @@ function optimize_value_student(
                 -sum(agent.subagents[1](s |> agent.device))
             end,
             grad_ps,)
+
+        for k in keys(gs.grads)
+            if isa(gs.grads[k], Array)
+                gs.grads[k] += 0.01f0.*randn(Float32, size(gs.grads[k]))
+            end
+        end
 
         Flux.Optimise.update!(opt, grad_ps, gs)
 
