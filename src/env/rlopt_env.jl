@@ -307,6 +307,7 @@ function get_next_obs_with_f(
         end
         done = false
         # stop_gradient() do
+        #     for i = 1:5
         # while !done
         #     exp, done = RLE2.interact!(env2, env.agent, policy = :random)
         #     add_exp!(env.agent.buffers.train_buffer, exp)
@@ -315,13 +316,15 @@ function get_next_obs_with_f(
         #         reset!(env2)
         #     end
         # end
+        #         end
         # end
+
+            if state_rep_str[1] !== "PE-xon"
         while curr_size(env.agent.buffers.train_buffer) < M
-            if state_rep_str[1] == "PE-xon"
-                exp, done = RLE2.interact!(env2, env.agent, policy = :agent)
-            else
+            # if state_rep_str[1] == "PE-xon"
+            #     # exp, done = RLE2.interact!(env2, env.agent, policy = :agent)
+            # else
                 exp, done = RLE2.interact!(env2, env.agent, policy = :random)
-            end
             add_exp!(env.agent.buffers.train_buffer, exp)
             if done
                 finish_episode(env.agent.buffers.train_buffer)
@@ -330,7 +333,9 @@ function get_next_obs_with_f(
             if curr_size(env.agent.buffers.train_buffer) == M
                 finish_episode(env.agent.buffers.train_buffer)
             end
+            # end
         end
+                end
 
 
         data = stop_gradient() do
@@ -525,7 +530,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 10,
+    n_steps = 2,
     return_gs = false,
     greedy = false,
     cold_start = false,
@@ -538,15 +543,15 @@ function optimize_value_student(
     end
 
     RLE2.reset!(env)
-    # if !greedy
-    # if rand() < 0.1
-    #     # println("NO OPT")
-    #     # RLE2.reset!(env)
-    #     return
-    # else
-    #     # println("OPT")
-    # end
-    # end
+    if !greedy
+    if rand() < 0.1
+        # println("NO OPT")
+        # RLE2.reset!(env)
+        return
+    else
+        # println("OPT")
+    end
+    end
 
     if isnothing(env.init_state[1])
         f = env.agent.subagents[1].model.f
