@@ -111,7 +111,7 @@ function train_loop(env::AbstractRLOptEnv; greedy = false, add_exp = false)
     return exp, done
 end
 
-function reset!(env::AbstractRLOptEnv; saved_f = false)
+function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
     env.env.rng = MersenneTwister(1)
     env.done = false
 
@@ -126,7 +126,9 @@ function reset!(env::AbstractRLOptEnv; saved_f = false)
 
     if saved_f == true && !isnothing(env.init_state[1])
         ps, re = Flux.destructure(env.init_state[1].f)
-        ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
+        if !greedy
+            # ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
+        end
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].model.f = f
         env.agent.subagents[1].params = f.params
@@ -667,7 +669,7 @@ function optimize_student_metrics(
     if !isnothing(env.init_state[1])
     # println("ini: ", sum([sum(p) for p in env.init_state[1].params]))
     end
-    reset!(env, saved_f = true)
+    reset!(env, saved_f = true, greedy = true)
     s = deepcopy(env.env.state)
         # println("1: ", sum([sum(p) for p in env.agent.subagents[1].model.f.params]))
 
@@ -686,7 +688,7 @@ function optimize_student_metrics(
     train_perf = G/env.max_steps
     push!(performance, train_perf)
 
-    reset!(env, saved_f = true)
+    reset!(env, saved_f = true, greedy = true)
     done = false
     G = 0
     count = 0
