@@ -126,7 +126,7 @@ function reset!(env::AbstractRLOptEnv; saved_f = false)
 
     if saved_f == true && !isnothing(env.init_state[1])
         ps, re = Flux.destructure(env.init_state[1].f)
-        # ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
+        ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].model.f = f
         env.agent.subagents[1].params = f.params
@@ -635,11 +635,11 @@ function optimize_value_student(
     #     env.agent.subagents[1].target.sp_network.f.params = f.params
     # end
     # env.obs = get_next_obs(env)
+    reset!(env, saved_f = true)
     if Base.mod(env.init_state[4], 20) == 0
         println("SUM V POST OPT: ", -sum(agent.subagents[1](env.obs |> agent.device)))
     end
     env.init_state[4] = env.init_state[4] + 1
-    reset!(env, saved_f = true)
 
     if return_gs
         return gs
