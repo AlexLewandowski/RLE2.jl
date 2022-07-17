@@ -126,6 +126,7 @@ function reset!(env::AbstractRLOptEnv; saved_f = false)
 
     if saved_f == :new && !isnothing(env.init_state[1])
         ps, re = Flux.destructure(env.init_state[1].f)
+        ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].model.f = f
         env.agent.subagents[1].params = f.params
@@ -602,11 +603,11 @@ function optimize_value_student(
             end,
             grad_ps,)
 
-        for k in keys(gs.grads)
-            if isa(gs.grads[k], Array)
-                gs.grads[k] += 0.01f0.*randn(Float32, size(gs.grads[k]))
-            end
-        end
+        # for k in keys(gs.grads)
+        #     if isa(gs.grads[k], Array)
+        #         gs.grads[k] += 0.01f0.*randn(Float32, size(gs.grads[k]))
+        #     end
+        # end
 
         Flux.Optimise.update!(opt, grad_ps, gs)
 
@@ -624,6 +625,7 @@ function optimize_value_student(
         # env.agent.subagents[1].model.f = f
         # env.agent.subagents[1].params = f.params
     else
+        ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
         f = NeuralNetwork(re(ps))
         # f = env.agent.subagents[1].model.f # Continue inner loop training
         env.agent.subagents[1].model.f = f
