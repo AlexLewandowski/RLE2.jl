@@ -124,9 +124,9 @@ function reset!(env::AbstractRLOptEnv; saved_f = false)
 
     agent = env.agent
 
-    if saved_f == :new && !isnothing(env.init_state[1])
+    if saved_f == true && !isnothing(env.init_state[1])
         ps, re = Flux.destructure(env.init_state[1].f)
-        ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
+        # ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].model.f = f
         env.agent.subagents[1].params = f.params
@@ -619,26 +619,27 @@ function optimize_value_student(
 
     # TODO: Figure out how to handle parameters
     # TODO: Figure out how to best set parameters for subagent
-    if env.state_representation == "parameters"
-        # opt.state = opt.state[grad_ps]
-        # env.init_state = [f, opt, iter]
-        # env.agent.subagents[1].model.f = f
-        # env.agent.subagents[1].params = f.params
-    else
-        ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
-        f = NeuralNetwork(re(ps))
-        # f = env.agent.subagents[1].model.f # Continue inner loop training
-        env.agent.subagents[1].model.f = f
-        env.agent.subagents[1].params = f.params
-        f = NeuralNetwork(re(ps))
-        env.agent.subagents[1].target.sp_network.f.f = f.f
-        env.agent.subagents[1].target.sp_network.f.params = f.params
-    end
-    env.obs = get_next_obs(env)
+    # if env.state_representation == "parameters"
+    #     # opt.state = opt.state[grad_ps]
+    #     # env.init_state = [f, opt, iter]
+    #     # env.agent.subagents[1].model.f = f
+    #     # env.agent.subagents[1].params = f.params
+    # else
+    #     ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
+    #     f = NeuralNetwork(re(ps))
+    #     # f = env.agent.subagents[1].model.f # Continue inner loop training
+    #     env.agent.subagents[1].model.f = f
+    #     env.agent.subagents[1].params = f.params
+    #     f = NeuralNetwork(re(ps))
+    #     env.agent.subagents[1].target.sp_network.f.f = f.f
+    #     env.agent.subagents[1].target.sp_network.f.params = f.params
+    # end
+    # env.obs = get_next_obs(env)
     if Base.mod(env.init_state[4], 20) == 0
         println("SUM V POST OPT: ", -sum(agent.subagents[1](env.obs |> agent.device)))
     end
     env.init_state[4] = env.init_state[4] + 1
+    reset!(env, saved_f = true)
 
     if return_gs
         return gs
@@ -666,7 +667,7 @@ function optimize_student_metrics(
     if !isnothing(env.init_state[1])
     # println("ini: ", sum([sum(p) for p in env.init_state[1].params]))
     end
-    reset!(env, saved_f = :new)
+    reset!(env, saved_f = true)
     s = deepcopy(env.env.state)
         # println("1: ", sum([sum(p) for p in env.agent.subagents[1].model.f.params]))
 
@@ -685,7 +686,7 @@ function optimize_student_metrics(
     train_perf = G/env.max_steps
     push!(performance, train_perf)
 
-    reset!(env, saved_f = :new)
+    reset!(env, saved_f = true)
     done = false
     G = 0
     count = 0
@@ -714,7 +715,7 @@ function optimize_student_metrics(
 
     post_term_value = env.agent.subagents[1](s_term |> env.agent.device)
 
-    reset!(env, saved_f = :new)
+    reset!(env, saved_f = true)
     pre_term_value = env.agent.subagents[1](s_term |> env.agent.device)
 
 
