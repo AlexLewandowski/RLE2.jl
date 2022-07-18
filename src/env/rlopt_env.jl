@@ -535,7 +535,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 10,
+    n_steps = 1,
     return_gs = false,
     greedy = false,
     cold_start = false,
@@ -682,7 +682,7 @@ function optimize_student_metrics(
     # println("ini: ", sum([sum(p) for p in env.init_state[1].params]))
     end
     reset!(env, saved_f = true, greedy = true)
-    s = deepcopy(env.env.state)
+    s = deepcopy(RLE2.get_state(env.env))
         # println("1: ", sum([sum(p) for p in env.agent.subagents[1].model.f.params]))
 
     done = false
@@ -694,8 +694,6 @@ function optimize_student_metrics(
         G += exp.r
         count += 1
     end
-
-
 
     train_perf = G/env.max_steps
     push!(performance, train_perf)
@@ -710,7 +708,7 @@ function optimize_student_metrics(
     s_term = nothing
     while !done
         # println("2: ", sum([sum(p) for p in env.agent.subagents[1].model.f.params]))
-        s_term = deepcopy(env.env.state)
+        s_term = deepcopy(RLE2.get_state(env.env))
         exp, done = train_loop(env, greedy = true)
         G += exp.r
         count += 1
