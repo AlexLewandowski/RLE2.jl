@@ -127,7 +127,9 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
     if saved_f == true && !isnothing(env.init_state[1])
         ps, re = Flux.destructure(env.init_state[1].f)
         if !greedy
-            ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
+            if rand() < 0.1
+                ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
+            end
         end
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].model.f = f
@@ -533,7 +535,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 2,
+    n_steps = 10,
     return_gs = false,
     greedy = false,
     cold_start = false,
