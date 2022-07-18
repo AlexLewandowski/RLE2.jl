@@ -111,8 +111,8 @@ function train_loop(env::AbstractRLOptEnv; greedy = false, add_exp = false)
     return exp, done
 end
 
-function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
-    env.env.rng = MersenneTwister(1)
+function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
+    env.env.rng = MersenneTwister(env.init_state[3])
     env.done = false
 
     env.t = 1
@@ -127,9 +127,7 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
     if saved_f == true && !isnothing(env.init_state[1])
         ps, re = Flux.destructure(env.init_state[1].f)
         if !greedy
-            if rand() < 0.1
-                ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
-            end
+            ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
         end
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].model.f = f
@@ -152,7 +150,9 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
     # end
 
     reset!(env.env)
-    env.env.state = Float32(0.1) * rand(MersenneTwister(1), Float32, 4) .- Float32(0.05)
+    # env.env.state = Float32(0.1) * rand(MersenneTwister(env.init_state[3]), Float32, 4) .- Float32(0.05)
+    # env.env.state = Float32(0.1) * rand(env.rng, Float32, 4) .- Float32(0.05)
+    # println(env.env.state)
     env.obs = get_next_obs(env)
     env.init_state[3] = env.init_state[3] + 1
 end
@@ -535,7 +535,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 10,
+    n_steps = 1,
     return_gs = false,
     greedy = false,
     cold_start = false,
@@ -552,6 +552,16 @@ function optimize_value_student(
     # if rand() < 0.1
     #     # println("NO OPT")
     #     # RLE2.reset!(env)
+    #     return
+    # else
+    #     # println("OPT")
+    # end
+    # end
+
+    # if !greedy
+    # if rand() < 0.1
+    #     # println("NO OPT")
+    #     RLE2.reset!(env, saved_f = true, greedy = false)
     #     return
     # else
     #     # println("OPT")

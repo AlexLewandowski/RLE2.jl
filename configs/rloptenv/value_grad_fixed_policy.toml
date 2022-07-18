@@ -10,7 +10,7 @@ post_exp = "gen_metric_dict"
 [static_args]
 init_num_episodes = 100
 init_policy = "default"
-num_episodes = 2000
+num_episodes = 4000
 num_grad_steps = 10
 num_env_steps = 1
 batch_size = 32
@@ -60,7 +60,7 @@ callback_funcs = """
 """
 
 [sweep_args]
-lr = "[0.001]"
+lr = "[0.0005]"
 seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 30)"
 state_representation = ["PE-xon_50", "PE-x_50"]
 EnvType = ["CartPole_RLOptEnv-stationary"]
