@@ -10,8 +10,8 @@ post_exp = "gen_metric_dict"
 [static_args]
 init_num_episodes = 256
 init_policy = "default"
-num_episodes = 4000
-num_grad_steps = 1
+num_episodes = 2000
+num_grad_steps = 4
 num_env_steps = 1
 batch_size = 128
 max_num_episodes = 256
