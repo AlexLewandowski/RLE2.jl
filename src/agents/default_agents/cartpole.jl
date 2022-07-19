@@ -39,7 +39,8 @@ function get_agent(env::CartPoleEnv, iter = 1)
 
     meta_buffer = TransitionReplayBuffer(
         env,
-        max_num_episodes,
+        10,
+        # max_num_episodes,
         max_agent_steps,
         batch_size,
         gamma,

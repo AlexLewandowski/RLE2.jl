@@ -159,6 +159,13 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
     # end
 
     reset!(env.env)
+    # println(env.env.t)
+    # println(env.env.state)
+    # env2 = deepcopy(env.env) #TODO deterministic start state to test pendulum!
+    # env2.rng = MersenneTwister(1)
+    # reset!(env2)
+    # env.env.state = deepcopy(env2.state)
+    # println(get_obs(env.env))
     # env.env.state = Float32(0.1) * rand(MersenneTwister(1), Float32, 4) .- Float32(0.05)
     # env.env.state = Float32(0.1) * rand(MersenneTwister(env.init_state[3]), Float32, 4) .- Float32(0.05)
     # env.env.state = Float32(0.1) * rand(env.rng, Float32, 4) .- Float32(0.05)
@@ -183,7 +190,8 @@ Base.show(io::IO, t::MIME"text/plain", env::AbstractRLOptEnv) = begin
 end
 
 function (env::AbstractRLOptEnv)(a)
-    reset_experience!(env.agent.buffers.meta_buffer)
+    # reset_experience!(env.agent.buffers.meta_buffer)
+    # println(env.agent.buffers.meta_buffer)
     done = false
     exp = 1
     G = 0f0
@@ -191,6 +199,8 @@ function (env::AbstractRLOptEnv)(a)
     # println("F pre: ", env.agent.subagents[1](s))
     # loss = mc_buffer_loss
     # println("Loss pre: ", loss(env.agent, env.env, batch_size = -1))
+    # num_evals = 4
+    # for i = 1:num_evals
     while !done
         loop = env.init_state[5]
         if contains(env.state_representation, "xon")
@@ -202,6 +212,8 @@ function (env::AbstractRLOptEnv)(a)
         # r = -mc_buffer_loss(env.agent, env.env)[1][1]
         G += r
     end
+    # end
+    # G /= num_evals
     # G = -buffer_loss(env.agent, env.env, batch_size = -1)[1][1]
     # println("F post: ", env.agent.subagents[1](s))
     # println("Loss post: ", loss(env.agent, env.env, batch_size = -1))
@@ -567,15 +579,15 @@ function optimize_value_student(
     # end
     # end
 
-    if !greedy
-    if rand() < 0.1
-        # println("NO OPT")
-        RLE2.reset!(env, saved_f = true, greedy = false)
-        return
-    else
-        # println("OPT")
-    end
-    end
+    # if !greedy
+    # if rand() < 0.1
+    #     # println("NO OPT")
+    #     RLE2.reset!(env, saved_f = true, greedy = false)
+    #     return
+    # else
+    #     # println("OPT")
+    # end
+    # end
 
     if isnothing(env.init_state[1])
         f = env.agent.subagents[1].model.f
