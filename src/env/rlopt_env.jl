@@ -76,12 +76,15 @@ end
 function step_loop(env::AbstractRLOptEnv; greedy = false, add_exp = false)
     exp, done = RLE2.interact!(env.env, env.agent, greedy = greedy)
 
-    buffer = env.agent.buffers.train_buffer
+    train_buffer = env.agent.buffers.train_buffer
+    meta_buffer = env.agent.buffers.meta_buffer
 
     if add_exp
+        for buffer in env.agent.buffers
         add_exp!(buffer, exp)
         if done
             RLE2.finish_episode(buffer)
+        end
         end
     end
 
@@ -91,36 +94,42 @@ end
 function train_loop(env::AbstractRLOptEnv; greedy = false, add_exp = false)
     exp, done = RLE2.interact!(env.env, env.agent, greedy = greedy)
 
-    buffer = env.agent.buffers.train_buffer
+    train_buffer = env.agent.buffers.train_buffer
+    meta_buffer = env.agent.buffers.meta_buffer
 
     if add_exp
+        for buffer in env.agent.buffers
         add_exp!(buffer, exp)
         if done
             RLE2.finish_episode(buffer)
+        end
         end
     end
 
     # train_subagents(env.agent, resample = true)
 
     ep = [exp]
-    ep = pad_episode!(buffer, ep, 2)
-    init_batches(buffer, 1)
-    fill_buffer!(buffer, ep, 1)
+    ep = pad_episode!(train_buffer, ep, 2)
+    init_batches(train_buffer, 1)
+    fill_buffer!(train_buffer, ep, 1)
     train_subagents(env.agent, resample = false)
 
     return exp, done
 end
 
 function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
+# function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
+    env.init_state[3] = env.init_state[3] + 1
     env.env.rng = MersenneTwister(env.init_state[3])
     env.done = false
 
     env.t = 1
 
-    buffer = env.agent.buffers.train_buffer
+    train_buffer = env.agent.buffers.train_buffer
+    meta_buffer = env.agent.buffers.meta_buffer
 
     env.agent = get_agent(env.env, env.init_state[3])
-    env.agent.buffers = (train_buffer = buffer,)
+    env.agent.buffers = (train_buffer = train_buffer, meta_buffer = meta_buffer,)
 
     agent = env.agent
 
@@ -150,11 +159,11 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
     # end
 
     reset!(env.env)
+    # env.env.state = Float32(0.1) * rand(MersenneTwister(1), Float32, 4) .- Float32(0.05)
     # env.env.state = Float32(0.1) * rand(MersenneTwister(env.init_state[3]), Float32, 4) .- Float32(0.05)
     # env.env.state = Float32(0.1) * rand(env.rng, Float32, 4) .- Float32(0.05)
     # println(env.env.state)
     env.obs = get_next_obs(env)
-    env.init_state[3] = env.init_state[3] + 1
 end
 
 Base.show(io::IO, t::MIME"text/plain", env::AbstractRLOptEnv) = begin
@@ -174,7 +183,7 @@ Base.show(io::IO, t::MIME"text/plain", env::AbstractRLOptEnv) = begin
 end
 
 function (env::AbstractRLOptEnv)(a)
-    reset_experience!(env.agent.buffers.train_buffer)
+    reset_experience!(env.agent.buffers.meta_buffer)
     done = false
     exp = 1
     G = 0f0
@@ -241,7 +250,7 @@ function get_next_obs_with_f(
         t = env.t
     end
 
-    N = RLE2.curr_size(env.agent.buffers.train_buffer)
+    N = RLE2.curr_size(env.agent.buffers.meta_buffer)
 
     state_rep_str = stop_gradient() do
         split(env.state_representation, "_")
@@ -325,18 +334,18 @@ function get_next_obs_with_f(
         # end
 
             if state_rep_str[1] !== "PE-xon"
-        while curr_size(env.agent.buffers.train_buffer) < M
+        while curr_size(env.agent.buffers.meta_buffer) < M
             # if state_rep_str[1] == "PE-xon"
             #     # exp, done = RLE2.interact!(env2, env.agent, policy = :agent)
             # else
                 exp, done = RLE2.interact!(env2, env.agent, policy = :random)
-            add_exp!(env.agent.buffers.train_buffer, exp)
+            add_exp!(env.agent.buffers.meta_buffer, exp)
             if done
-                finish_episode(env.agent.buffers.train_buffer)
+                finish_episode(env.agent.buffers.meta_buffer)
                 reset!(env2)
             end
-            if curr_size(env.agent.buffers.train_buffer) == M
-                finish_episode(env.agent.buffers.train_buffer)
+            if curr_size(env.agent.buffers.meta_buffer) == M
+                finish_episode(env.agent.buffers.meta_buffer)
             end
             # end
         end
@@ -344,8 +353,8 @@ function get_next_obs_with_f(
 
 
         data = stop_gradient() do
-            StatsBase.sample(env.agent.buffers.train_buffer, M, replacement = true)
-            get_batch(env.agent.buffers.train_buffer, env.agent.subagents[1])
+            StatsBase.sample(env.agent.buffers.meta_buffer, M, replacement = true)
+            get_batch(env.agent.buffers.meta_buffer, env.agent.subagents[1])
         end
 
         x_ = data[2][:,1,:]
@@ -551,27 +560,28 @@ function optimize_value_student(
     # if !greedy
     # if rand() < 0.1
     #     # println("NO OPT")
-    #     # RLE2.reset!(env)
+    #     # RLE2.eeset!(env)
     #     return
     # else
     #     # println("OPT")
     # end
     # end
 
-    # if !greedy
-    # if rand() < 0.1
-    #     # println("NO OPT")
-    #     RLE2.reset!(env, saved_f = true, greedy = false)
-    #     return
-    # else
-    #     # println("OPT")
-    # end
-    # end
+    if !greedy
+    if rand() < 0.1
+        # println("NO OPT")
+        RLE2.reset!(env, saved_f = true, greedy = false)
+        return
+    else
+        # println("OPT")
+    end
+    end
 
     if isnothing(env.init_state[1])
         f = env.agent.subagents[1].model.f
-        opt = Flux.ADAM(0.001)
-        # opt = Flux.RMSProp(0.001)
+        # opt = Flux.ADAM(0.001)
+        opt = Flux.ADAM(0.0005)
+        # opt = Flux.RMSProp(0.0005)
         # opt = Flux.Descent(0.001)
         ps, re = Flux.destructure(f.f)
         f = NeuralNetwork(re(ps))
@@ -669,27 +679,22 @@ function optimize_student_metrics(
 )
 
     performance = []
+    counts = []
     test_performance = []
 
     adapted_performance = []
+    adapted_counts = []
     adapted_test_performance = []
 
     env = deepcopy(en)
     agent = deepcopy(agent)
 
-
-    if !isnothing(env.init_state[1])
-    # println("ini: ", sum([sum(p) for p in env.init_state[1].params]))
-    end
     reset!(env, saved_f = true, greedy = true)
     s = deepcopy(RLE2.get_state(env.env))
-        # println("1: ", sum([sum(p) for p in env.agent.subagents[1].model.f.params]))
-
     done = false
     G = 0
     count = 0
     while !done
-        # println("1: ", sum([sum(p) for p in env.agent.subagents[1].model.f.params]))
         exp, done = step_loop(env, greedy = true)
         G += exp.r
         count += 1
@@ -697,23 +702,25 @@ function optimize_student_metrics(
 
     train_perf = G/env.max_steps
     push!(performance, train_perf)
-
-    reset!(env, saved_f = true, greedy = true)
-    done = false
-    G = 0
-    count = 0
+    push!(counts, count)
 
     pre_init_value = env.agent.subagents[1](s |> env.agent.device)
 
+    reset!(env, saved_f = true, greedy = true)
     s_term = nothing
+    done = false
+    G = 0
+    count = 0
     while !done
-        # println("2: ", sum([sum(p) for p in env.agent.subagents[1].model.f.params]))
         s_term = deepcopy(RLE2.get_state(env.env))
         exp, done = train_loop(env, greedy = true)
         G += exp.r
         count += 1
     end
 
+    train_perf = G/env.max_steps
+    push!(adapted_performance, train_perf)
+    push!(adapted_counts, count)
 
     if !isnothing(env.init_state[1])
         post_ps, _ = Flux.destructure(env.agent.subagents[1].model.f.f)
@@ -724,19 +731,18 @@ function optimize_student_metrics(
     end
 
     post_init_value = env.agent.subagents[1](s |> env.agent.device)
-
     post_term_value = env.agent.subagents[1](s_term |> env.agent.device)
 
     reset!(env, saved_f = true)
     pre_term_value = env.agent.subagents[1](s_term |> env.agent.device)
 
 
-    train_perf = G/env.max_steps
-    push!(adapted_performance, train_perf)
 
     rs = [
         mean(adapted_performance),
+        mean(adapted_counts),
         mean(performance),
+        mean(counts),
         mean(LinearAlgebra.norm, init_ps .- post_ps),
         maximum(pre_init_value),
         maximum(post_init_value),
@@ -745,7 +751,9 @@ function optimize_student_metrics(
     ]
     names    = [
         "adapted_performance",
+        "adapted_counts",
         "nonadapted_performance",
+        "nonadapted_counts",
         "norm_diff_params",
         "pre_init_val",
         "post_init_val",

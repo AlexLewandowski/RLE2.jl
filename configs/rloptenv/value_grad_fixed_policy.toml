@@ -8,13 +8,13 @@ arg_iter_type = "iter"
 post_exp = "gen_metric_dict"
 
 [static_args]
-init_num_episodes = 100
+init_num_episodes = 256
 init_policy = "default"
 num_episodes = 4000
-num_grad_steps = 10
+num_grad_steps = 1
 num_env_steps = 1
-batch_size = 32
-max_num_episodes = 101
+batch_size = 128
+max_num_episodes = 256
 max_episode_length = 200
 history_window = 1
 BufferType = "TransitionReplayBuffer"

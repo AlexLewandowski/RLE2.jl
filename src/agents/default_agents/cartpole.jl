@@ -36,7 +36,20 @@ function get_agent(env::CartPoleEnv, iter = 1)
         rng = buffer_rng,
         name = "train_buffer",
     )
-    buffers = (train_buffer = train_buffer, )
+
+    meta_buffer = TransitionReplayBuffer(
+        env,
+        max_num_episodes,
+        max_agent_steps,
+        batch_size,
+        gamma,
+        history_window = history_window,
+        predict_window = predict_window,
+        overlap = overlap,
+        rng = buffer_rng,
+        name = "meta_buffer",
+    )
+    buffers = (train_buffer = train_buffer, meta_buffer = meta_buffer,)
     agent = get_agent("DQN",
                       buffers,
                       env,
