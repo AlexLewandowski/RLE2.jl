@@ -257,6 +257,7 @@ function get_next_obs_with_f(
     task_id = nothing,
     xy = nothing,
     t = nothing,
+    resample = true,
 )
     if isnothing(t)
         t = env.t
@@ -345,7 +346,7 @@ function get_next_obs_with_f(
         #         end
         # end
 
-            if state_rep_str[1] !== "PE-xon"
+        if string(state_rep_str[1]) !== "PE-xon"
         while curr_size(env.agent.buffers.meta_buffer) < M
             # if state_rep_str[1] == "PE-xon"
             #     # exp, done = RLE2.interact!(env2, env.agent, policy = :agent)
@@ -356,7 +357,7 @@ function get_next_obs_with_f(
                 finish_episode(env.agent.buffers.meta_buffer)
                 reset!(env2)
             end
-            if curr_size(env.agent.buffers.meta_buffer) == M
+            if !done && curr_size(env.agent.buffers.meta_buffer) == M
                 finish_episode(env.agent.buffers.meta_buffer)
             end
             # end
@@ -365,7 +366,9 @@ function get_next_obs_with_f(
 
 
         data = stop_gradient() do
-            StatsBase.sample(env.agent.buffers.meta_buffer, M, replacement = true)
+            if resample
+                StatsBase.sample(env.agent.buffers.meta_buffer, M, replacement = true)
+            end
             get_batch(env.agent.buffers.meta_buffer, env.agent.subagents[1])
         end
 
@@ -407,6 +410,10 @@ function get_next_obs_with_f(
 
         elseif state_rep_str[1] == "PE-xon"
             meta_data_list = [x_]
+            # y_sp_stop = stop_gradient() do
+            #     f(x_sp)
+            # end
+            # meta_data_list = [y_sp_stop, x_, x_sp]
 
         elseif state_rep_str[1] == "PE-td"
 
@@ -541,9 +548,9 @@ function get_next_obs_with_f(
         #     println("Max: ", Max)
         # end
         state =  Float32.(vcat(state, aux, aux_dim, x_dim, y_dim, L, M))
-        stop_gradient() do
-            StatsBase.sample(env.agent.buffers.train_buffer, env.agent.buffers.train_buffer.batch_size);
-        end
+        # stop_gradient() do
+        #     StatsBase.sample(env.agent.buffers.train_buffer, env.agent.buffers.train_buffer.batch_size);
+        # end
         return state
 
     else
@@ -568,7 +575,7 @@ function optimize_value_student(
         t = env.max_steps
     end
 
-    RLE2.reset!(env)
+    RLE2.reset!(env, saved_f = true)
     # if !greedy
     # if rand() < 0.1
     #     # println("NO OPT")
@@ -592,8 +599,9 @@ function optimize_value_student(
     if isnothing(env.init_state[1])
         f = env.agent.subagents[1].model.f
         # opt = Flux.ADAM(0.001)
-        opt = Flux.ADAM(0.0005)
-        # opt = Flux.RMSProp(0.0005)
+        lr = agent.subagents[1].optimizer.eta
+        # opt = Flux.RMSProp(lr)
+        opt = Flux.ADAM(lr)
         # opt = Flux.Descent(0.001)
         ps, re = Flux.destructure(f.f)
         f = NeuralNetwork(re(ps))
@@ -605,21 +613,26 @@ function optimize_value_student(
 
     gs = nothing
     num_reports = 10
-    if n_steps > 10
+    if n_steps > num_reports
         report_freq = Int(n_steps / num_reports)
     else
-        report_freq = 10
+        report_freq = 1
     end
     grad_ps = nothing
 
-    obs = get_next_obs_with_f(env, f);
-    # println("SUM V Pre OPT: ", -sum(agent.subagents[1](obs |> agent.device)))
 
+    obs = get_next_obs_with_f(env, f);
+    # if Base.mod(env.init_state[4], 20) == 0
+    #     println("SUM V PRE OPT: ", -sum(agent.subagents[1](obs |> agent.device)))
+    # end
     for i = 1:n_steps
         # if mod(i, report_freq) == 0
+        #     debug = true
         #     if debug
-        #         println("V: ", get_mean_v(env, agent, f, deterministic = true))
-        #         # println("ACC: ", calc_performance(env, f = f, mode = :train))
+        #         if Base.mod(env.init_state[4], 20) == 0
+        #             obs = get_next_obs_with_f(env, f, resample = false);
+        #             println("SUM V OPT: ", -sum(agent.subagents[1](obs |> agent.device)))
+        #         end
         #     end
         # end
 
@@ -633,7 +646,7 @@ function optimize_value_student(
                 if env.state_representation == "parameters"
                    s = vcat(ps, get_state(env.env))
                 else
-                   s = get_next_obs_with_f(env, f);
+                   s = get_next_obs_with_f(env, f, resample = true);
                 end
                 -sum(agent.subagents[1](s |> agent.device))
             end,
@@ -644,9 +657,7 @@ function optimize_value_student(
         #         gs.grads[k] += 0.01f0.*randn(Float32, size(gs.grads[k]))
         #     end
         # end
-
         Flux.Optimise.update!(opt, grad_ps, gs)
-
     end
 
     ps, re = Flux.destructure(f.f)
@@ -657,7 +668,7 @@ function optimize_value_student(
     # TODO: Figure out how to best set parameters for subagent
     # if env.state_representation == "parameters"
     #     # opt.state = opt.state[grad_ps]
-    #     # env.init_state = [f, opt, iter]
+    #     # env .init_state = [f, opt, iter]
     #     # env.agent.subagents[1].model.f = f
     #     # env.agent.subagents[1].params = f.params
     # else
@@ -671,10 +682,11 @@ function optimize_value_student(
     #     env.agent.subagents[1].target.sp_network.f.params = f.params
     # end
     # env.obs = get_next_obs(env)
-    reset!(env, saved_f = true)
     if Base.mod(env.init_state[4], 20) == 0
-        println("SUM V POST OPT: ", -sum(agent.subagents[1](env.obs |> agent.device)))
+        obs = get_next_obs_with_f(env, f, resample = false);
+        println("SUM V POST OPT: ", -sum(agent.subagents[1](obs |> agent.device)))
     end
+    reset!(env, saved_f = true)
     env.init_state[4] = env.init_state[4] + 1
 
     if return_gs

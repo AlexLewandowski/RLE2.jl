@@ -60,8 +60,10 @@ callback_funcs = """
 """
 
 [sweep_args]
-lr = "[0.0005]"
+lr = "[0.001, 0.0005, 0.0001]"
+# lr = "[0.0001]"
 seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 30)"
-state_representation = ["PE-xon_50", "PE-x_50"]
+# state_representation = ["PE-xon_50", "PE-x_50"]
+state_representation = ["PE-xon_50"]
 EnvType = ["CartPole_RLOptEnv-stationary"]
 pooling_func = ["mean"]
