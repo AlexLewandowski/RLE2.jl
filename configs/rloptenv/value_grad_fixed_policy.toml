@@ -29,7 +29,7 @@ curriculum = false
 overlap = true
 shaping = false
 force = "online"
-gpu = false
+gpu = true
 corruption_rate = 0.0
 drop_rate = 0.0
 reg = false
@@ -60,11 +60,8 @@ callback_funcs = """
 """
 
 [sweep_args]
-# lr = "[0.001, 0.0005, 0.0001]"
 lr = "[0.001, 0.0005, 0.0001]"
-# lr = "[0.0005]"
 seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 30)"
-# state_representation = ["PE-xon_50", "PE-x_50"]
-state_representation = ["PE-xon_200"]
+state_representation = ["PE-x_5", "PE-x_10", "PE-x_20", "PE-x_40"]
 EnvType = ["CartPole_RLOptEnv-stationary"]
 pooling_func = ["mean"]

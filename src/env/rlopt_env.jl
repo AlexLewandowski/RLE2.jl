@@ -28,6 +28,8 @@ function RLOptEnv(
     kwargs...,
 )
 
+    internal_seed = rand(rng, 1:100000000)
+
     agent = get_agent(env)
 
     for buffer in agent.buffers
@@ -54,7 +56,7 @@ function RLOptEnv(
     else
         loop = train_loop
     end
-    init_state = [nothing, nothing, 1, 1, loop]
+    init_state = [nothing, nothing, 1, 1, loop, internal_seed]
     env = RLOptEnv(
         env,
         agent,
@@ -120,7 +122,8 @@ end
 function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
 # function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
     env.init_state[3] = env.init_state[3] + 1
-    env.env.rng = MersenneTwister(env.init_state[3])
+    env.env.rng = MersenneTwister(env.init_state[6])
+    reset!(env.env)
     env.done = false
 
     env.t = 1
@@ -158,18 +161,19 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
     #     )
     # end
 
-    reset!(env.env)
-    # println(env.env.t)
-    # println(env.env.state)
+    env.env.rng = MersenneTwister(env.init_state[3])
+
+    # # println(env.env.t)
+    # # println(env.env.state)
     # env2 = deepcopy(env.env) #TODO deterministic start state to test pendulum!
     # env2.rng = MersenneTwister(1)
     # reset!(env2)
     # env.env.state = deepcopy(env2.state)
-    # println(get_obs(env.env))
-    # env.env.state = Float32(0.1) * rand(MersenneTwister(1), Float32, 4) .- Float32(0.05)
-    # env.env.state = Float32(0.1) * rand(MersenneTwister(env.init_state[3]), Float32, 4) .- Float32(0.05)
-    # env.env.state = Float32(0.1) * rand(env.rng, Float32, 4) .- Float32(0.05)
-    # println(env.env.state)
+    # # println(get_obs(env.env))
+    # # env.env.state = Float32(0.1) * rand(MersenneTwister(1), Float32, 4) .- Float32(0.05)
+    # # env.env.state = Float32(0.1) * rand(MersenneTwister(env.init_state[3]), Float32, 4) .- Float32(0.05)
+    # # env.env.state = Float32(0.1) * rand(env.rng, Float32, 4) .- Float32(0.05)
+    # # println(env.env.state)
     env.obs = get_next_obs(env)
 end
 
@@ -190,7 +194,9 @@ Base.show(io::IO, t::MIME"text/plain", env::AbstractRLOptEnv) = begin
 end
 
 function (env::AbstractRLOptEnv)(a)
-    # reset_experience!(env.agent.buffers.meta_buffer)
+    if contains(env.state_representation, "xon")
+        reset_experience!(env.agent.buffers.meta_buffer)
+    end
     # println(env.agent.buffers.meta_buffer)
     done = false
     exp = 1
@@ -345,23 +351,23 @@ function get_next_obs_with_f(
         #         end
         # end
 
-        if string(state_rep_str[1]) !== "PE-xon"
-        while curr_size(env.agent.buffers.meta_buffer) < M
-            # if state_rep_str[1] == "PE-xon"
-            #     # exp, done = RLE2.interact!(env2, env.agent, policy = :agent)
-            # else
-                exp, done = RLE2.interact!(env2, env.agent, policy = :random)
-            add_exp!(env.agent.buffers.meta_buffer, exp)
-            if done
-                finish_episode(env.agent.buffers.meta_buffer)
-                reset!(env2)
-            end
-            if !done && curr_size(env.agent.buffers.meta_buffer) == M
-                finish_episode(env.agent.buffers.meta_buffer)
-            end
-            # end
-        end
-                end
+        # if string(state_rep_str[1]) !== "PE-xon"
+        # while curr_size(env.agent.buffers.meta_buffer) < M
+        #     # if state_rep_str[1] == "PE-xon"
+        #     #     # exp, done = RLE2.interact!(env2, env.agent, policy = :agent)
+        #     # else
+        #         exp, done = RLE2.interact!(env2, env.agent, policy = :random)
+        #     add_exp!(env.agent.buffers.meta_buffer, exp)
+        #     if done
+        #         finish_episode(env.agent.buffers.meta_buffer)
+        #         reset!(env2)
+        #     end
+        #     if !done && curr_size(env.agent.buffers.meta_buffer) == M
+        #         finish_episode(env.agent.buffers.meta_buffer)
+        #     end
+        #     # end
+        # end
+        #         end
 
 
         data = stop_gradient() do

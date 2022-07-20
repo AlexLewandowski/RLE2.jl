@@ -8,13 +8,13 @@ arg_iter_type = "iter"
 post_exp = "gen_metric_dict"
 
 [static_args]
-init_num_episodes = 100
+init_num_episodes = 256
 init_policy = "default"
-num_episodes = 4000
-num_grad_steps = 10
+num_episodes = 2000
+num_grad_steps = 1
 num_env_steps = 1
-batch_size = 32
-max_num_episodes = 100
+batch_size = 128
+max_num_episodes = 256
 max_episode_length = 200
 history_window = 1
 BufferType = "TransitionReplayBuffer"
@@ -29,7 +29,7 @@ curriculum = false
 overlap = true
 shaping = false
 force = "online"
-gpu = false
+gpu = true
 corruption_rate = 0.0
 drop_rate = 0.0
 reg = false
@@ -60,8 +60,8 @@ callback_funcs = """
 """
 
 [sweep_args]
-lr = "[0.0005]"
-seed = "using Random; rand(MersenneTwister(313292115), 1:10^10, 30)"
-state_representation = ["PE-xon_50", "PE-x_50"]
+lr = "[0.001, 0.0005, 0.0001]"
+seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 30)"
+state_representation = ["PE-x_5", "PE-x_10", "PE-x_20", "PE-x_40"]
 EnvType = ["CartPole_RLOptEnv"]
 pooling_func = ["mean"]
