@@ -278,7 +278,6 @@ function get_next_obs_with_f(
     # aux_dim = length(aux)
     aux_dim = 0
 
-
     if state_rep_str[1] == "parameters"
         # Can be differentiated
         P, re = Flux.destructure(f.f)
@@ -713,16 +712,22 @@ function optimize_student_metrics(
     env = deepcopy(en)
     agent = deepcopy(agent)
 
-    reset!(env, saved_f = true, greedy = true)
-    s = deepcopy(RLE2.get_state(env.env))
-    done = false
     G = 0
     count = 0
+    num_evals = 10
+    reset!(env, saved_f = true, greedy = true)
+    s = deepcopy(RLE2.get_state(env.env))
+    for i = 1:num_evals
+    reset!(env, saved_f = true, greedy = true)
+    done = false
     while !done
         exp, done = step_loop(env, greedy = true)
         G += exp.r
         count += 1
     end
+    end
+    G /= num_evals
+    count /= num_evals
 
     train_perf = G/env.max_steps
     push!(performance, train_perf)
@@ -730,17 +735,22 @@ function optimize_student_metrics(
 
     pre_init_value = env.agent.subagents[1](s |> env.agent.device)
 
-    reset!(env, saved_f = true, greedy = true)
-    s_term = nothing
-    done = false
     G = 0
     count = 0
+    num_evals = 10
+    s_term = nothing
+    for i = 1:num_evals
+    reset!(env, saved_f = true, greedy = true)
+    done = false
     while !done
         s_term = deepcopy(RLE2.get_state(env.env))
         exp, done = train_loop(env, greedy = true)
         G += exp.r
         count += 1
     end
+    end
+    G /= num_evals
+    count /= num_evals
 
     train_perf = G/env.max_steps
     push!(adapted_performance, train_perf)
