@@ -24,6 +24,7 @@ function RLOptEnv(
     max_steps;
     device = Flux.cpu,
     stationary = false,
+    explore = false,
     rng = Random.GLOBAL_RNG,
     kwargs...,
 )
@@ -56,7 +57,7 @@ function RLOptEnv(
     else
         loop = train_loop
     end
-    init_state = [nothing, nothing, 1, 1, loop, internal_seed]
+    init_state = [nothing, nothing, 1, 1, loop, internal_seed, explore]
     env = RLOptEnv(
         env,
         agent,
@@ -581,15 +582,15 @@ function optimize_value_student(
     end
 
     RLE2.reset!(env, saved_f = true)
-    # if !greedy
-    # if rand() < 0.1
-    #     # println("NO OPT")
-    #     # RLE2.eeset!(env)
-    #     return
-    # else
-    #     # println("OPT")
-    # end
-    # end
+    if !greedy && env.init_state[7]
+    if rand() < 0.1
+        # println("NO OPT")
+        # RLE2.eeset!(env)
+        return
+    else
+        # println("OPT")
+    end
+    end
 
     # if !greedy
     # if rand() < 0.1

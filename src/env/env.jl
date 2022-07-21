@@ -199,13 +199,20 @@ function get_env(EnvType; skip = 1, max_steps = 200, seed = nothing, value_rewar
         else
             stationary = false
         end
+
+        if contains(env_str[end], "explore")
+            explore = true
+        else
+            explore = false
+        end
+
         println(env_str)
         env_str_remains = join(env_str[1:end-1], "_")
         max_env_steps = max_steps * skip
         rng = MersenneTwister(seed)
 
         student_env, _, _ = get_env(env_str_remains, skip = skip, seed = seed, max_steps = max_steps, negative_reward = false)
-        env = RLOptEnv(student_env, state_representation, max_env_steps; rng = rng, stationary = stationary, kwargs...)
+        env = RLOptEnv(student_env, state_representation, max_env_steps; rng = rng, stationary = stationary, explore = explore, kwargs...)
 
         action_decoder = x -> softmax(x)
 
