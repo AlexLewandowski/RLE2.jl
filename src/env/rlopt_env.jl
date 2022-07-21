@@ -195,9 +195,9 @@ Base.show(io::IO, t::MIME"text/plain", env::AbstractRLOptEnv) = begin
 end
 
 function (env::AbstractRLOptEnv)(a)
-    if contains(env.state_representation, "xon")
-        reset_experience!(env.agent.buffers.meta_buffer)
-    end
+    # if contains(env.state_representation, "xon")
+    #     reset_experience!(env.agent.buffers.meta_buffer)
+    # end
     # println(env.agent.buffers.meta_buffer)
     done = false
     exp = 1
