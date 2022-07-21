@@ -10,7 +10,7 @@ post_exp = "gen_metric_dict"
 [static_args]
 init_num_episodes = 256
 init_policy = "default"
-num_episodes = 40
+num_episodes = 4000
 num_grad_steps = 1
 num_env_steps = 1
 max_num_episodes = 256
@@ -28,7 +28,7 @@ curriculum = false
 overlap = true
 shaping = false
 force = "online"
-gpu = true
+gpu = false
 corruption_rate = 0.0
 drop_rate = 0.0
 reg = false
@@ -61,8 +61,7 @@ callback_funcs = """
 [sweep_args]
 lr = "[0.001, 0.0005]"
 seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 30)"
-# state_representation = ["PE-x_40", "PE-xon_40"]
-state_representation = ["PE-xon_40"]
+state_representation = ["PE-x_40", "PE-xon_40"]
 EnvType = ["CartPole_RLOptEnv", "CartPole_RLOptEnv-softexplore", "CartPole_RLOptEnv-hardexplore"]
 pooling_func = ["mean"]
 batch_size = [32, 64, 128]
