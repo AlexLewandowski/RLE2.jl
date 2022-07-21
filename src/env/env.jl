@@ -200,8 +200,10 @@ function get_env(EnvType; skip = 1, max_steps = 200, seed = nothing, value_rewar
             stationary = false
         end
 
-        if contains(env_str[end], "explore")
-            explore = true
+        if contains(env_str[end], "hardexplore")
+            explore = :hard
+        elseif contains(env_str[end], "softexplore")
+            explore = :soft
         else
             explore = false
         end

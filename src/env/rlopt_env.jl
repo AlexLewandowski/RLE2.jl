@@ -582,25 +582,26 @@ function optimize_value_student(
     end
 
     RLE2.reset!(env, saved_f = true)
-    if !greedy && env.init_state[7]
+    if !greedy && env.init_state[7] == :hard
     if rand() < 0.1
         # println("NO OPT")
-        # RLE2.eeset!(env)
+        println("NO OPT HARD")
+        RLE2.reset!(env, saved_f = false)
         return
     else
         # println("OPT")
     end
     end
 
-    # if !greedy
-    # if rand() < 0.1
-    #     # println("NO OPT")
-    #     RLE2.reset!(env, saved_f = true, greedy = false)
-    #     return
-    # else
-    #     # println("OPT")
-    # end
-    # end
+    if !greedy && env.init_state[7] == :soft
+    if rand() < 0.1
+        println("NO OPT SOFT")
+        RLE2.reset!(env, saved_f = true, greedy = false)
+        return
+    else
+        # println("OPT")
+    end
+    end
 
     if isnothing(env.init_state[1])
         f = env.agent.subagents[1].model.f
