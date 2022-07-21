@@ -406,7 +406,7 @@ function meta_state_encoder(ins, outs, embed_dim, seed; aux_dim = 0, aux_embed_d
     @assert length(ins) == length(outs)
     L = length(ins)
     input_modules = []
-    num_layers = 0
+    num_layers = -1
     skip_connection = true
     layernorm = false
     for l = 1:L
