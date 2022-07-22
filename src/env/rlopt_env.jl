@@ -34,16 +34,16 @@ function RLOptEnv(
     agent = get_agent(env)
 
     for buffer in agent.buffers
-        populate_replay_buffer!(
-            buffer,
-            env,
-            agent,
-            policy = :random,
-            # policy = :agent,
-            num_episodes = 10,
-            max_steps = agent.max_agent_steps,
-            greedy = false,
-        )
+        # populate_replay_buffer!(
+        #     buffer,
+        #     env,
+        #     agent,
+        #     policy = :random,
+        #     # policy = :agent,
+        #     num_episodes = 10,
+        #     max_steps = agent.max_agent_steps,
+        #     greedy = false,
+        # )
     end
 
     t = 0
@@ -72,6 +72,7 @@ function RLOptEnv(
         device,
         rng,
     )
+    env(1)
     reset!(env)
     return env
 end
@@ -140,14 +141,16 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
     if saved_f == true && !isnothing(env.init_state[1])
         ps, re = Flux.destructure(env.init_state[1].f)
         if !greedy
-            ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
+            ps = [p .+ 0.1f0*randn(Float32, size(p)) for p in ps]
         end
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].model.f = f
         env.agent.subagents[1].params = f.params
+        if env.agent.name == "DQN"
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].target.sp_network.f.f = f.f
         env.agent.subagents[1].target.sp_network.f.params = f.params
+        end
     end
 
     # for buffer in agent.buffers
@@ -195,7 +198,7 @@ Base.show(io::IO, t::MIME"text/plain", env::AbstractRLOptEnv) = begin
 end
 
 function (env::AbstractRLOptEnv)(a)
-    if contains(env.state_representation, "xon")
+    if contains(env.state_representation, "xon2")
         reset_experience!(env.agent.buffers.meta_buffer)
     end
     # println(env.agent.buffers.meta_buffer)
@@ -225,6 +228,7 @@ function (env::AbstractRLOptEnv)(a)
     # println("F post: ", env.agent.subagents[1](s))
     # println("Loss post: ", loss(env.agent, env.env, batch_size = -1))
 
+    # env.reward = G/1200
     env.reward = G/env.max_steps
     # println(env.reward)
     # println("G: ", G)
@@ -370,6 +374,8 @@ function get_next_obs_with_f(
         # end
         #         end
 
+    # println("SUM: ", sum(env.agent.buffers.meta_buffer._episode_lengths[2:end]))
+    # println("lens: ", length.(env.agent.buffers.meta_buffer._episodes[2:end]))
 
         data = stop_gradient() do
             if resample
@@ -416,10 +422,9 @@ function get_next_obs_with_f(
 
         elseif state_rep_str[1] == "PE-xon"
             meta_data_list = [x_]
-            # y_sp_stop = stop_gradient() do
-            #     f(x_sp)
-            # end
-            # meta_data_list = [y_sp_stop, x_, x_sp]
+
+        elseif state_rep_str[1] == "PE-xon2"
+            meta_data_list = [x_]
 
         elseif state_rep_str[1] == "PE-td"
 
@@ -569,7 +574,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 1,
+    n_steps = 10,
     return_gs = false,
     greedy = false,
     cold_start = false,
@@ -650,12 +655,17 @@ function optimize_value_student(
         # end
 
         gs = Flux.gradient(() -> begin
+                V = 0
+                num_evals = 10
+                for i = 1:num_evals
                 if env.state_representation == "parameters"
                    s = vcat(ps, get_state(env.env))
                 else
                    s = get_next_obs_with_f(env, f, resample = true);
                 end
-                -sum(agent.subagents[1](s |> agent.device))
+                V += -sum(agent.subagents[1](s |> agent.device))
+                           end
+                V/num_evals
             end,
             grad_ps,)
 
@@ -692,6 +702,7 @@ function optimize_value_student(
     if Base.mod(env.init_state[4], 20) == 0
         obs = get_next_obs_with_f(env, f, resample = false);
         println("SUM V POST OPT: ", -sum(agent.subagents[1](obs |> agent.device)))
+        println("GRAD NORM: ", sum(LinearAlgebra.norm, gs))
     end
     reset!(env, saved_f = true)
     env.init_state[4] = env.init_state[4] + 1
@@ -737,8 +748,7 @@ function optimize_student_metrics(
     G /= num_evals
     count /= num_evals
 
-    train_perf = G/env.max_steps
-    push!(performance, train_perf)
+    push!(performance, G)
     push!(counts, count)
 
     pre_init_value = env.agent.subagents[1](s |> env.agent.device)
@@ -760,8 +770,7 @@ function optimize_student_metrics(
     G /= num_evals
     count /= num_evals
 
-    train_perf = G/env.max_steps
-    push!(adapted_performance, train_perf)
+    push!(adapted_performance, G)
     push!(adapted_counts, count)
 
     if !isnothing(env.init_state[1])

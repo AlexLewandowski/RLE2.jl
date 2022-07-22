@@ -407,7 +407,7 @@ function meta_state_encoder(ins, outs, embed_dim, seed; aux_dim = 0, aux_embed_d
     L = length(ins)
     input_modules = []
     num_layers = -1
-    skip_connection = true
+    skip_connection = false
     layernorm = false
     for l = 1:L
         A_in = feed_forward(
@@ -467,7 +467,7 @@ function meta_state_encoder(ins, outs, embed_dim, seed; aux_dim = 0, aux_embed_d
         embed_dim,
         embed_dim,
         seed = seed,
-        output_a = relu,
+        output_a = σ,
         output_bias = true, #TODO not for self-teaching RL
         σ = σ,
         num_hidden_layers = num_layers,

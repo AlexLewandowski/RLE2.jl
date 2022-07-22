@@ -3,7 +3,7 @@ function get_agent(env::CartPoleEnv, iter = 1)
     max_agent_steps = 201 #IMPORTANT
     measurement_funcs = []
     gamma = 0.99f0
-    update_freq = 2
+    update_freq = 10
     predict_window = 0 #TODO should be both 0 or 1
     history_window = 1 #TODO should be both 0 or 1
     num_layers = 1
@@ -51,7 +51,7 @@ function get_agent(env::CartPoleEnv, iter = 1)
         name = "meta_buffer",
     )
     buffers = (train_buffer = train_buffer, meta_buffer = meta_buffer,)
-    agent = get_agent("DQN",
+    agent = get_agent("ResidualQLearn",
                       buffers,
                       env,
                       measurement_freq,
@@ -74,6 +74,6 @@ function get_agent(env::CartPoleEnv, iter = 1)
                       )
     # TODO: Why has to explore??
     agent.subagents[1].model.ϵ = 1.0
-    # agent.subagents[1].model.ϵ = 0.9
+    # agent.subagents[1].model.ϵ = 0.99
     return agent
 end
