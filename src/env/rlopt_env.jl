@@ -576,7 +576,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 10,
+    n_steps = 2,
     return_gs = false,
     greedy = false,
     cold_start = false,
