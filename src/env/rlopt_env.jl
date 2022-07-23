@@ -123,7 +123,7 @@ function train_loop(env::AbstractRLOptEnv; greedy = false, add_exp = false)
     return exp, done
 end
 
-function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
+function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true, resample = true)
 # function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
     env.init_state[3] = env.init_state[3] + 1
     env.env.rng = MersenneTwister(env.init_state[6])
@@ -180,7 +180,7 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true)
     # # env.env.state = Float32(0.1) * rand(MersenneTwister(env.init_state[3]), Float32, 4) .- Float32(0.05)
     # # env.env.state = Float32(0.1) * rand(env.rng, Float32, 4) .- Float32(0.05)
     # # println(env.env.state)
-    env.obs = get_next_obs(env)
+    env.obs = get_next_obs(env, resample = resample)
 end
 
 Base.show(io::IO, t::MIME"text/plain", env::AbstractRLOptEnv) = begin
@@ -258,8 +258,8 @@ function get_info(env::AbstractRLOptEnv)
     return nothing
 end
 
-function get_next_obs(env::AbstractRLOptEnv)
-    return get_next_obs_with_f(env, env.agent.subagents[1].model.f)
+function get_next_obs(env::AbstractRLOptEnv; resample = true)
+    return get_next_obs_with_f(env, env.agent.subagents[1].model.f, resample = resample)
     # return [0]
 end
 
@@ -576,7 +576,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 2,
+    n_steps = 10,
     return_gs = false,
     greedy = false,
     cold_start = false,
@@ -615,6 +615,7 @@ function optimize_value_student(
         # opt = Flux.ADAM(0.001)
         lr = agent.subagents[1].optimizer.eta
         # opt = Flux.RMSProp(lr)
+        # opt = Flux.ADAM(lr/2)
         opt = Flux.ADAM(lr)
         # opt = Flux.Descent(0.001)
         ps, re = Flux.destructure(f.f)
@@ -657,17 +658,12 @@ function optimize_value_student(
         # end
 
         gs = Flux.gradient(() -> begin
-                V = 0
-                num_evals = 10
-                for i = 1:num_evals
                 if env.state_representation == "parameters"
                    s = vcat(ps, get_state(env.env))
                 else
-                   s = get_next_obs_with_f(env, f, resample = true);
+                   s = get_next_obs_with_f(env, f, resample = false);
                 end
-                V += -sum(agent.subagents[1](s |> agent.device))
-                           end
-                V/num_evals
+                V = -sum(agent.subagents[1](s |> agent.device))
             end,
             grad_ps,)
 
@@ -706,7 +702,7 @@ function optimize_value_student(
         println("SUM V POST OPT: ", -sum(agent.subagents[1](obs |> agent.device)))
         println("GRAD NORM: ", sum(LinearAlgebra.norm, gs))
     end
-    reset!(env, saved_f = true)
+    reset!(env, saved_f = true, resample = false)
     env.init_state[4] = env.init_state[4] + 1
 
     if return_gs
@@ -735,7 +731,7 @@ function optimize_student_metrics(
 
     G = 0
     count = 0
-    num_evals = 10
+    num_evals = 1
     reset!(env, saved_f = true, greedy = true)
     s = deepcopy(RLE2.get_state(env.env))
     for i = 1:num_evals

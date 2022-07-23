@@ -3,7 +3,7 @@ function get_agent(env::CartPoleEnv, iter = 1)
     max_agent_steps = 201 #IMPORTANT
     measurement_funcs = []
     gamma = 0.99f0
-    update_freq = 10
+    update_freq = 1
     predict_window = 0 #TODO should be both 0 or 1
     history_window = 1 #TODO should be both 0 or 1
     num_layers = 1
@@ -51,7 +51,7 @@ function get_agent(env::CartPoleEnv, iter = 1)
         name = "meta_buffer",
     )
     buffers = (train_buffer = train_buffer, meta_buffer = meta_buffer,)
-    agent = get_agent("ResidualQLearn",
+    agent = get_agent("DQN",
                       buffers,
                       env,
                       measurement_freq,
