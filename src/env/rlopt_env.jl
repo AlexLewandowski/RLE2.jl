@@ -33,17 +33,19 @@ function RLOptEnv(
 
     agent = get_agent(env)
 
+    if contains(string(state_representation), "PE-x_")
     for buffer in agent.buffers
-        # populate_replay_buffer!(
-        #     buffer,
-        #     env,
-        #     agent,
-        #     policy = :random,
-        #     # policy = :agent,
-        #     num_episodes = 10,
-        #     max_steps = agent.max_agent_steps,
-        #     greedy = false,
-        # )
+        populate_replay_buffer!(
+            buffer,
+            env,
+            agent,
+            policy = :random,
+            # policy = :agent,
+            num_episodes = 10,
+            max_steps = agent.max_agent_steps,
+            greedy = false,
+        )
+    end
     end
 
     t = 0
