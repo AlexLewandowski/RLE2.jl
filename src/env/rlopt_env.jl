@@ -665,7 +665,7 @@ function optimize_value_student(
 
         gs = Flux.gradient(() -> begin
                 V = 0
-                num_evals = 11
+                num_evals = 1
                 for i = 1:num_evals
                 if env.state_representation == "parameters"
                    s = vcat(ps, get_state(env.env))
