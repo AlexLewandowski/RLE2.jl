@@ -57,7 +57,8 @@ function RLOptEnv(
     else
         loop = train_loop
     end
-    init_state = [nothing, nothing, 1, 1, loop, internal_seed, explore]
+    explore_flag = false
+    init_state = [nothing, nothing, 1, 1, loop, internal_seed, explore, explore_flag]
     env = RLOptEnv(
         env,
         agent,
@@ -101,7 +102,7 @@ function train_loop(env::AbstractRLOptEnv; greedy = false, add_exp = false)
     train_buffer = env.agent.buffers.train_buffer
     meta_buffer = env.agent.buffers.meta_buffer
 
-    if add_exp
+    if add_exp && !env.init_state[8]
         for buffer in env.agent.buffers
         add_exp!(buffer, exp)
         if done
@@ -121,10 +122,18 @@ function train_loop(env::AbstractRLOptEnv; greedy = false, add_exp = false)
     return exp, done
 end
 
-function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true, resample = true)
+function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true, resample = true, explore_flag = false)
 # function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = false)
+    env.init_state[8] = explore_flag
+
+
     env.init_state[3] = env.init_state[3] + 1
-    env.env.rng = MersenneTwister(env.init_state[6])
+    # internal_seed = 73642149
+    internal_seed = env.init_state[6]
+    # internal_seed = 1
+    # env.env.rng = MersenneTwister(internal_seed)
+    # env.env.rng = MersenneTwister(1)
+    # env.env = CartPoleEnv(T = Float32, gravity = 100.0*rand(), rng = env.env.rng)
     reset!(env.env)
     env.done = false
 
@@ -139,9 +148,14 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true, resample 
     agent = env.agent
 
     if saved_f == true && !isnothing(env.init_state[1])
-        ps, re = Flux.destructure(env.init_state[1].f)
+        f = env.init_state[1]
+        ps, re = Flux.destructure(f.f)
         if !greedy
-            ps = [p .+ 0.1f0*randn(Float32, size(p)) for p in ps]
+            ps_old = Flux.params(f.f)
+            ps_new = [p .+ Float32.(randn(Float32, size(p))/sqrt(prod(size(p)))) for p in ps_old]
+            ps_new = vcat([reshape(p, :) for p in ps_new]...)
+            ps = ps_new
+            # ps = [p .+ 0.01f0*randn(Float32, size(p)) for p in ps]
         end
         f = NeuralNetwork(re(ps))
         env.agent.subagents[1].model.f = f
@@ -165,14 +179,14 @@ function reset!(env::AbstractRLOptEnv; saved_f = false, greedy = true, resample 
     #     )
     # end
 
-    env.env.rng = MersenneTwister(env.init_state[3])
+    # env.env.rng = MersenneTwister(env.init_state[3])
 
     # # println(env.env.t)
     # # println(env.env.state)
-    # env2 = deepcopy(env.env) #TODO deterministic start state to test pendulum!
-    # env2.rng = MersenneTwister(1)
-    # reset!(env2)
-    # env.env.state = deepcopy(env2.state)
+    env2 = deepcopy(env.env) #TODO deterministic start state to test pendulum!
+    env2.rng = MersenneTwister(internal_seed)
+    reset!(env2)
+    env.env.state = deepcopy(env2.state)
     # # println(get_obs(env.env))
     # # env.env.state = Float32(0.1) * rand(MersenneTwister(1), Float32, 4) .- Float32(0.05)
     # # env.env.state = Float32(0.1) * rand(MersenneTwister(env.init_state[3]), Float32, 4) .- Float32(0.05)
@@ -198,9 +212,9 @@ Base.show(io::IO, t::MIME"text/plain", env::AbstractRLOptEnv) = begin
 end
 
 function (env::AbstractRLOptEnv)(a)
-    if contains(env.state_representation, "xon2")
-        reset_experience!(env.agent.buffers.meta_buffer)
-    end
+    # if contains(env.state_representation, "xon2")
+    #     reset_experience!(env.agent.buffers.meta_buffer)
+    # end
     # println(env.agent.buffers.meta_buffer)
     done = false
     exp = 1
@@ -399,7 +413,7 @@ function get_next_obs_with_f(
         maskp = data[end][:,1,:]
 
         y_ = f(x_)
-        y_sp = f(x_)
+        y_sp = f(x_sp)
 
         # y_ = softmax(f(x_))
         # y_ = Float32.(RLE2.get_greedypolicy(f(x_)))
@@ -432,21 +446,22 @@ function get_next_obs_with_f(
         elseif state_rep_str[1] == "PE-xon2"
             meta_data_list = [x_]
 
-        elseif state_rep_str[1] == "PE-td"
-
-            y_sp = reshape(
-                maximum(y_sp, dims = 1),
-                size(y),
-            )
+        elseif state_rep_str[1] == "PE-xontd"
+            # y_sp = reshape(
+            #     maximum(y_sp, dims = 1),
+            #     size(y),
+            # )
             y_sp = y_sp .* (1 .- done)
-            y_ = sum(y_ .* mask, dims = 1)
+            r = y
+            target = r .+ y_sp
+            # y_ = sum(y_ .* mask, dims = 1)
             # y_sp = sum(y_sp .* maskp)
             # y_sp = softmax(f(x_sp)).*(1 .- done)
             # y_sp = f(x_sp).*(1 .- done)
             # println(y_sp)
             # println(sum(done))
             # y_sp = f(x_sp)
-            meta_data_list = [y_sp, y, x_, x_sp]
+            meta_data_list = [target, x_, a]
 
         elseif state_rep_str[1] == "PE-xysp"
             y_sp = f(x_sp)
@@ -568,6 +583,9 @@ function get_next_obs_with_f(
         # stop_gradient() do
         #     StatsBase.sample(env.agent.buffers.train_buffer, env.agent.buffers.train_buffer.batch_size);
         # end
+        # stop_gradient() do
+        #     StatsBase.sample(env.agent.buffers.meta_buffer, env.agent.buffers.meta_buffer.batch_size);
+        # end
         return state
 
     else
@@ -592,12 +610,12 @@ function optimize_value_student(
         t = env.max_steps
     end
 
-    RLE2.reset!(env, saved_f = true)
+    RLE2.reset!(env, saved_f = false)
     if !greedy && env.init_state[7] == :hard
     if rand() < 0.1
         # println("NO OPT")
         println("NO OPT HARD")
-        RLE2.reset!(env, saved_f = false)
+        RLE2.reset!(env, saved_f = false, explore_flag = true)
         return
     else
         # println("OPT")
@@ -617,8 +635,14 @@ function optimize_value_student(
     if isnothing(env.init_state[1])
         f = env.agent.subagents[1].model.f
         # opt = Flux.ADAM(0.001)
-        lr = agent.subagents[1].optimizer.eta
-        opt = Flux.ADAM(lr)
+        lr = agent.subagents[1].optimizer.eta/n_steps
+        if env.init_state[5] == train_loop
+            factor = 10f0
+        else
+            factor = 1f0
+        end
+
+        opt = Flux.ADAM(lr*factor)
         # opt = Flux.RMSProp(lr)
         # opt = Flux.ADAM(lr/2)
         # opt = Flux.Descent(0.001)
@@ -629,6 +653,9 @@ function optimize_value_student(
         opt = env.init_state[2]
         ps = f.params
     end
+        # f = env.agent.subagents[1].model.f
+        # ps, re = Flux.destructure(f.f)
+        # f = NeuralNetwork(re(ps))
         # lr = agent.subagents[1].optimizer.eta
         # opt = Flux.ADAM(lr)
 
@@ -665,7 +692,7 @@ function optimize_value_student(
 
         gs = Flux.gradient(() -> begin
                 V = 0
-                num_evals = 1
+                num_evals = 10
                 for i = 1:num_evals
                 if env.state_representation == "parameters"
                    s = vcat(ps, get_state(env.env))
@@ -674,7 +701,7 @@ function optimize_value_student(
                 end
                 V += -sum(agent.subagents[1](s |> agent.device))
                 end
-                V
+                V/num_evals
             end,
             grad_ps,)
 
@@ -687,6 +714,23 @@ function optimize_value_student(
     end
 
     ps, re = Flux.destructure(f.f)
+    # ps_old = Flux.params(f.f)
+    # # ps_new = [p .+ Float32.(randn(Float32, size(p))/sqrt(prod(size(p)))) for p in ps_old]
+    # ps_new = [p for p in ps_old]
+    # lr = agent.subagents[1].optimizer.eta
+    # new_opt = typeof(opt)()
+    # ps_new = vcat([reshape(p, :) for p in ps_new]...)
+    # f = re(ps_new)
+    # ps_new = Flux.params(f)
+    # for i = 1:length(ps_new)
+    #     p_old = ps_old[i]
+    #     p_new = ps_new[i]
+    #     new_opt.state[p_new] = opt.state[p_old]
+    # end
+
+    # env.init_state[1] = NeuralNetwork(f)
+    # env.init_state[2] = new_opt
+
     env.init_state[1] = f
     env.init_state[2] = opt
 
@@ -713,7 +757,15 @@ function optimize_value_student(
         println("SUM V POST OPT: ", -sum(agent.subagents[1](obs |> agent.device)))
         println("GRAD NORM: ", sum(LinearAlgebra.norm, gs))
     end
+    # reset!(env, saved_f = true, resample = false)
     reset!(env, saved_f = true, resample = false)
+
+        # stop_gradient() do
+        #     StatsBase.sample(env.agent.buffers.train_buffer, env.agent.buffers.train_buffer.batch_size);
+        # end
+        # stop_gradient() do
+        #     StatsBase.sample(env.agent.buffers.meta_buffer, env.agent.buffers.meta_buffer.batch_size);
+        # end
     env.init_state[4] = env.init_state[4] + 1
 
     if return_gs
@@ -742,7 +794,7 @@ function optimize_student_metrics(
 
     G = 0
     count = 0
-    num_evals = 1
+    num_evals = 10
     reset!(env, saved_f = true, greedy = true)
     s = deepcopy(RLE2.get_state(env.env))
     for i = 1:num_evals
