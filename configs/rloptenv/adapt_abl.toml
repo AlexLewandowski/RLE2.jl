@@ -8,7 +8,7 @@ arg_iter_type = "iter"
 post_exp = "gen_metric_dict"
 
 [static_args]
-init_num_episodes = 256
+init_num_episodes = 128
 init_policy = "default"
 num_episodes = 2000
 num_grad_steps = 10
@@ -62,12 +62,13 @@ callback_funcs = """
 [sweep_args]
 lr = "[0.001, 0.0005]"
 # lr = "[0.0005]"
-seed = "using Random; rand(MersenneTwister(1192115), 1:10^10, 30)"
-state_representation = ["PE-x_50", "PE-x_100", "PE-xon_50", "PE-xon2_50"]
-# state_representation = ["PE-xon_50", "PE-x_100", "PE-xon_50", "PE-xon2_50"]
+seed = "using Random; rand(MersenneTwister(331192115), 1:10^10, 30)[20]"
+# state_representation = ["PE-x_50", "PE-x_100", "PE-xon_50", "PE-xon2_50"]
+# state_representation = ["PE-xon2_200", "PE-x_100", "PE-xon_50", "PE-xon2_50"]
+state_representation = ["PE-xon_40"]
 # EnvType = ["CartPole_RLOptEnv", "CartPole_RLOptEnv-softexplore", "CartPole_RLOptEnv-hardexplore"]
 # EnvType = ["CartPole_RLOptEnv-hardexplore", "CartPole_RLOptEnv"]
 # EnvType = ["CartPole_RLOptEnv", "CartPole_RLOptEnv-hardexplore"]
-# EnvType = ["CartPole_RLOptEnv-softexplore"]
-EnvType = ["CartPole_RLOptEnv"]
+EnvType = ["CartPole_RLOptEnv-softexplore", "CartPole_RLOptEnv"]
+# EnvType = ["CartPole_RLOptEnv"]
 pooling_func = ["mean"]

@@ -33,7 +33,6 @@ function RLOptEnv(
 
     agent = get_agent(env)
 
-    if contains(string(state_representation), "PE-x_")
     for buffer in agent.buffers
         populate_replay_buffer!(
             buffer,
@@ -45,7 +44,6 @@ function RLOptEnv(
             max_steps = agent.max_agent_steps,
             greedy = false,
         )
-    end
     end
 
     t = 0
@@ -379,9 +377,15 @@ function get_next_obs_with_f(
     # println("SUM: ", sum(env.agent.buffers.meta_buffer._episode_lengths[2:end]))
     # println("lens: ", length.(env.agent.buffers.meta_buffer._episodes[2:end]))
 
+        if curr_size(env.agent.buffers.meta_buffer) <= M
+            replacement = true
+        else
+            replacement = false
+        end
+
         data = stop_gradient() do
             if resample
-                StatsBase.sample(env.agent.buffers.meta_buffer, M, replacement = true)
+                StatsBase.sample(env.agent.buffers.meta_buffer, M, replacement = replacement)
             end
             get_batch(env.agent.buffers.meta_buffer, env.agent.subagents[1])
         end
@@ -576,7 +580,7 @@ using Optim, FluxOptTools
 function optimize_value_student(
     agent,
     env::AbstractRLOptEnv;
-    n_steps = 10,
+    n_steps = 1,
     return_gs = false,
     greedy = false,
     cold_start = false,
@@ -614,9 +618,9 @@ function optimize_value_student(
         f = env.agent.subagents[1].model.f
         # opt = Flux.ADAM(0.001)
         lr = agent.subagents[1].optimizer.eta
+        opt = Flux.ADAM(lr)
         # opt = Flux.RMSProp(lr)
         # opt = Flux.ADAM(lr/2)
-        opt = Flux.ADAM(lr)
         # opt = Flux.Descent(0.001)
         ps, re = Flux.destructure(f.f)
         f = NeuralNetwork(re(ps))
@@ -625,6 +629,8 @@ function optimize_value_student(
         opt = env.init_state[2]
         ps = f.params
     end
+        # lr = agent.subagents[1].optimizer.eta
+        # opt = Flux.ADAM(lr)
 
     gs = nothing
     num_reports = 10
@@ -658,12 +664,17 @@ function optimize_value_student(
         # end
 
         gs = Flux.gradient(() -> begin
+                V = 0
+                num_evals = 11
+                for i = 1:num_evals
                 if env.state_representation == "parameters"
                    s = vcat(ps, get_state(env.env))
                 else
-                   s = get_next_obs_with_f(env, f, resample = false);
+                   s = get_next_obs_with_f(env, f, resample = true);
                 end
-                V = -sum(agent.subagents[1](s |> agent.device))
+                V += -sum(agent.subagents[1](s |> agent.device))
+                end
+                V
             end,
             grad_ps,)
 
