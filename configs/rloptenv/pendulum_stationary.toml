@@ -1,5 +1,5 @@
 [config]
-save_dir="results/rloptenv_cartpole_fixed_abl/"
+save_dir="results/rloptenv_pend_stationary"
 exp_file="experiment/experiment.jl"
 exp_module_name = "Main"
 exp_func_name = "run_experiment"
@@ -8,10 +8,10 @@ arg_iter_type = "iter"
 post_exp = "gen_metric_dict"
 
 [static_args]
-init_num_episodes = 256
+init_num_episodes = 128
 init_policy = "default"
-num_episodes = 200
-num_grad_steps = 10
+num_episodes = 2000
+num_grad_steps = 20
 num_env_steps = 1
 batch_size = 32
 max_num_episodes = 256
@@ -29,7 +29,7 @@ curriculum = false
 overlap = true
 shaping = false
 force = "online"
-gpu = true
+gpu = false
 corruption_rate = 0.0
 drop_rate = 0.0
 reg = false
@@ -60,13 +60,9 @@ callback_funcs = """
 """
 
 [sweep_args]
-# lr = "[0.001, 0.0005]"
-lr = [0.0005]
-seed = "using Random; rand(MersenneTwister(92115), 1:10^10, 20)"
-# seed = "using Random; rand(MersenneTwister(331192115), 1:10^10, 30)"
-# state_representation = ["PE-x_40", "PE-xon_40"]
+lr = "[0.001]"
+seed = "using Random; rand(MersenneTwister(313292115), 1:10^10, 4)"
+# state_representation = ["PE-xon_20", "PE-xon_200", "PE-xon2-200"]
 state_representation = ["PE-xon_200"]
-EnvType = ["CartPole_RLOptEnv-stationary"]
-# EnvType = ["CartPole_RLOptEnv-stationary", "CartPole_RLOptEnv-stationary-softexplore", "CartPole_RLOptEnv-stationary-hardexplore"]
+EnvType = ["Pendulum_RLOptEnv-stationary"]
 pooling_func = ["mean"]
-# pooling_func = ["attention"]

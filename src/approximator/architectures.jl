@@ -479,7 +479,7 @@ function meta_state_encoder(ins, outs, embed_dim, seed; aux_dim = 0, aux_embed_d
 
 
     if pooling_f == :attention
-        pooling = MultiHeadAttention(embed_dim, embed_dim, embed_dim, set_attention = true, num_heads = 4, output_a = relu)
+        pooling = MultiHeadAttention(embed_dim, embed_dim, embed_dim, set_attention = true, num_heads = 4, output_a = σ)
     elseif pooling_f == :max
         pooling = x -> maximum(x, dims = 2)
     elseif pooling_f == :mean
