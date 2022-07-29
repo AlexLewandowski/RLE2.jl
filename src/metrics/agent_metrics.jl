@@ -263,13 +263,14 @@ function counterfactual(
     return [counterfactual / num_evals, factual / num_evals]
 end
 
-function buffer_loss(agent::AbstractAgent, env = nothing; num_evals = 100)
+function buffer_loss(agent::AbstractAgent, env = nothing; num_evals = 100, batch_size = nothing)
     list = collect(Iterators.product(agent.subagents, agent.buffers)) |> vec
     return apply_to_list(
         buffer_loss,
         list,
         state_encoder = agent.state_encoder,
         action_encoder = agent.action_encoder,
+        batch_size = batch_size,
     )
 end
 
@@ -280,11 +281,13 @@ function mc_start_loss(agent, env; num_evals = 100)
         action_encoder = agent.action_encoder,)
 end
 
-function mc_buffer_loss(agent, env; num_evals = 100)
+function mc_buffer_loss(agent, env; num_evals = 100, batch_size = nothing)
     list = collect(Iterators.product(agent.subagents, agent.buffers)) |> vec
     return apply_to_list(mc_buffer_loss, list,
         state_encoder = agent.state_encoder,
-        action_encoder = agent.action_encoder,)
+        action_encoder = agent.action_encoder,
+        batch_size = batch_size,
+                         )
 end
 
 function td_buffer_loss(agent, env; num_evals = 100)

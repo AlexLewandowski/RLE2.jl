@@ -234,8 +234,10 @@ function to_device!(subagent::AbstractSubagent, device = :default)
     subagent.params = new_ps
 
     old_opt = subagent.optimizer
+    if typeof(old_opt) <: Flux.ADAM
     if !isempty(old_opt.state)
         old_opt.state = IdDict(new_p => (device(old_opt.state[old_p][1]), device(old_opt.state[old_p][2]), old_opt.state[old_p][3])  for (new_p, old_p) in zip(new_ps, old_ps))
+    end
     end
 
     subagent.device = device

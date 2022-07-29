@@ -68,12 +68,19 @@ function estimate_value(
     return [vals / num_evals]
 end
 
-function buffer_loss(subagent::AbstractSubagent, buffer; state_encoder, action_encoder)
+function buffer_loss(subagent::AbstractSubagent, buffer; state_encoder, action_encoder, batch_size = nothing)
     data = nothing
-    try
-        data = get_batch(buffer, subagent)
-    catch
+    if isnothing(batch_size)
         StatsBase.sample(buffer)
+        data = get_batch(buffer, subagent)
+        # try
+        #     data = get_batch(buffer, subagent)
+        # catch
+        #     StatsBase.sample(buffer)
+        #     data = get_batch(buffer, subagent)
+        # end
+    else
+        StatsBase.sample(buffer, batch_size)
         data = get_batch(buffer, subagent)
     end
 
@@ -164,15 +171,15 @@ end
 
 function mc_buffer_loss(subagent::AbstractSubagent, buffer, action_encoder;) end
 
-function mc_buffer_loss(subagent::Subagent{P}, buffer; kwargs...) where {P<:Value}
+function mc_buffer_loss(subagent::Subagent{P}, buffer; batch_size = nothing, kwargs...) where {P<:Value}
     if buffer.bootstrap
         mc_buffer = montecarlo_buffer(buffer, 0.99f0)
     else
         mc_buffer = deepcopy(buffer)
     end
-    sample_size = -1
-    sample_size = nothing
-    StatsBase.sample(mc_buffer, sample_size)
+    # sample_size = -1
+    # sample_size = nothing
+    StatsBase.sample(mc_buffer, batch_size)
 
     s, o, a, p, G, sp, op, done, info  = get_batch(mc_buffer, subagent)
 

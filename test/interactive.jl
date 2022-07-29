@@ -17,15 +17,13 @@ stop_gradient(f) = f()
 history_window = 1
 predict_window = 0
 
-max_episode_length = 10
+max_episode_length = 200
 max_num_episodes = 10
 num_episodes = 2
 batch_size = 2
 gamma = 0.99f0
 skip = 1
 gamma = 0.99f0
-
-n_actions = 6 #TODO
 corruption_rate = 0.0f0
 
 
@@ -34,15 +32,33 @@ corruption_rate = 0.0f0
 seed = 6951693
 Random.seed!(2 * seed + 1)
 # state_representation = "PVN_10"
-state_representation = "PE-y_20"
+state_representation = "PE-td_10"
+# state_representation = "nothing"
+# state_representation = "parameters"
 pooling_func = :mean
 recurrent_action = 0
 buffer_rng = MersenneTwister(3 * seed - 1)
 overlap = false
 
 # env, max_agent_steps, embedding_f = RLE2.get_env("CartPole", skip = skip, seed = seed, max_steps = max_episode_length)
+# env, max_agent_steps, embedding_f = RLE2.get_env(
+#     "OptEnv-FiniteHorizon10-sinWave-ADAM",
+#     skip = skip,
+#     seed = seed,
+#     max_steps = max_episode_length,
+#     state_representation = state_representation,
+# )
+
+# env, max_agent_steps, embedding_f = RLE2.get_env(
+#     "CartPole",
+#     skip = skip,
+#     seed = seed,
+#     max_steps = max_episode_length,
+#     state_representation = state_representation,
+# )
+
 env, max_agent_steps, embedding_f = RLE2.get_env(
-    "OptEnv-FiniteHorizon10-sinWave-ADAM",
+    "CartPole_RLOptEnv-stationary",
     skip = skip,
     seed = seed,
     max_steps = max_episode_length,
@@ -109,6 +125,7 @@ test_buffer = TransitionReplayBuffer(
     name = "test_buffer",
 )
 
+println(ns," ", na)
 A = feed_forward(ns, na, hidden_size, num_hidden_layers = num_layers)
 
 buffers = (train_buffer = train_buffer, test_buffer = test_buffer)
@@ -182,6 +199,9 @@ push!(agents, ddqn_agent)
 
 restd0_agent = shorter_get_agent("ResidualTD0")
 push!(agents, restd0_agent)
+
+resql_agent = shorter_get_agent("ResidualQLearn")
+push!(agents, resql_agent)
 
 td0_agent = shorter_get_agent("TD0")
 push!(agents, td0_agent)

@@ -1,4 +1,4 @@
-function get_agent(env::MountainCarEnv, iter = 1)
+function get_agent(env::PendulumEnv, iter = 1)
     measurement_freq = 10000
     max_agent_steps = 201 #IMPORTANT
     measurement_funcs = []

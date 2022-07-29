@@ -1,25 +1,27 @@
-function get_agent(env::CartPoleEnv)
+function get_agent(env::CartPoleEnv, iter = 1)
     measurement_freq = 10000
-    max_agent_steps = 200 #IMPORTANT
+    max_agent_steps = 201 #IMPORTANT
     measurement_funcs = []
     gamma = 0.99f0
-    update_freq = 4
+    update_freq = 1
     predict_window = 0 #TODO should be both 0 or 1
     history_window = 1 #TODO should be both 0 or 1
-    num_layers = 2
-    hidden_size = 32
+    num_layers = 0
+    hidden_size = 128
     activation = Flux.relu
     drop_rate = 0.0f0
     optimizer = Flux.ADAM
+    # optimizer = Flux.RMSProp
+    # optimizer = Flux.Descent
     lr = 0.001
     device = Flux.cpu
-    num_grad_steps = 4
+    num_grad_steps = 1
     force = :offline
 
-    max_num_episodes = 1000
-    batch_size = 32
+    max_num_episodes = 100
+    batch_size = 128
     overlap = true
-    seed = 1
+    seed = 1 + iter
     buffer_rng = MersenneTwister(3*seed-1)
 
     train_buffer = TransitionReplayBuffer(
@@ -34,7 +36,21 @@ function get_agent(env::CartPoleEnv)
         rng = buffer_rng,
         name = "train_buffer",
     )
-    buffers = (train_buffer = train_buffer, )
+
+    meta_buffer = TransitionReplayBuffer(
+        env,
+        # 5,
+        max_num_episodes,
+        max_agent_steps,
+        batch_size,
+        gamma,
+        history_window = history_window,
+        predict_window = predict_window,
+        overlap = overlap,
+        rng = buffer_rng,
+        name = "meta_buffer",
+    )
+    buffers = (train_buffer = train_buffer, meta_buffer = meta_buffer,)
     agent = get_agent("DQN",
                       buffers,
                       env,
@@ -56,4 +72,8 @@ function get_agent(env::CartPoleEnv)
                       force,
                       seed,
                       )
+    # TODO: Why has to explore??
+    agent.subagents[1].model.ϵ = 1.0
+    # agent.subagents[1].model.ϵ = 0.9
+    return agent
 end

@@ -16,6 +16,7 @@ function calculate_metrics(
     env::AbstractEnv,
     measurement_funcs,
     path = nothing;
+    print_results = true,
 )
     # if path !== nothing
     #     save_agent(agent, path)
@@ -32,8 +33,10 @@ function calculate_metrics(
         result_tuple = f(agent, env)
         if result_tuple !== nothing
             results, names= result_tuple
-            println(names)
-            println(results)
+            if print_results
+                println(names)
+                println(results)
+            end
             @assert length(results) == length(names)
             @assert prod([typeof(name) == String for name in names]) == true f
             @assert prod([isa(result, Number) for result in results]) == true f
@@ -46,7 +49,9 @@ function calculate_metrics(
             push!(results_tuple, zip(results, names))
         end
     end
-    println()
+    if print_results
+        println()
+    end
 
     agent.device = old_device
     # to_device!(agent.π_b, agent.device)
@@ -98,10 +103,10 @@ function calculate_and_log_metrics(
         results_tuple = calculate_metrics(agent, env, measurement_funcs, path)
         log_metrics(results_tuple, measurement_dict, agent.measurement_count, init = true)
     else
-        # if online_returns in measurement_funcs
-        #     results_tuple = calculate_metrics(agent, env, [online_returns], path)
-        #     log_metrics(results_tuple, measurement_dict, agent.measurement_count)
-        # end
+        if online_returns in measurement_funcs
+            results_tuple = calculate_metrics(agent, env, [online_returns], path, print_results = false)
+            log_metrics(results_tuple, measurement_dict, agent.measurement_count)
+        end
     end
     agent.measurement_count += 1
     return nothing

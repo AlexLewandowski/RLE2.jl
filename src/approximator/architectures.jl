@@ -406,8 +406,8 @@ function meta_state_encoder(ins, outs, embed_dim, seed; aux_dim = 0, aux_embed_d
     @assert length(ins) == length(outs)
     L = length(ins)
     input_modules = []
-    num_layers = 0
-    skip_connection = true
+    num_layers = -1
+    skip_connection = false
     layernorm = false
     for l = 1:L
         A_in = feed_forward(
@@ -467,7 +467,7 @@ function meta_state_encoder(ins, outs, embed_dim, seed; aux_dim = 0, aux_embed_d
         embed_dim,
         embed_dim,
         seed = seed,
-        output_a = relu,
+        output_a = σ,
         output_bias = true, #TODO not for self-teaching RL
         σ = σ,
         num_hidden_layers = num_layers,
@@ -479,7 +479,7 @@ function meta_state_encoder(ins, outs, embed_dim, seed; aux_dim = 0, aux_embed_d
 
 
     if pooling_f == :attention
-        pooling = MultiHeadAttention(embed_dim, embed_dim, embed_dim, set_attention = true, num_heads = 4, output_a = relu)
+        pooling = MultiHeadAttention(embed_dim, embed_dim, embed_dim, set_attention = true, num_heads = 4, output_a = σ)
     elseif pooling_f == :max
         pooling = x -> maximum(x, dims = 2)
     elseif pooling_f == :mean

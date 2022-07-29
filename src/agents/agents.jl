@@ -128,7 +128,7 @@ Base.show(io::IO, a::Agent) = begin
     println("---------------------------")
 end
 
-function train_subagents(agent; reg = false, buffer = nothing)
+function train_subagents(agent; reg = false, buffer = nothing, resample = true)
     if isnothing(buffer)
         buffer = agent.buffers.train_buffer
     end
@@ -140,6 +140,7 @@ function train_subagents(agent; reg = false, buffer = nothing)
             agent.state_encoder,
             agent.action_encoder,
             reg = reg,
+            resample = resample,
         )
         if mod(subagent.update_count, subagent.update_freq) == 0
             update_submodel!(subagent, "state_encoder"; new_ps = get_params(agent.state_encoder))

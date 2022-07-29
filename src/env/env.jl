@@ -28,6 +28,7 @@ include("RNNMDP.jl")
 include("contextualenvs.jl")
 include("curriculum/curriculum_mdp.jl")
 include("optimization_env.jl")
+include("rlopt_env.jl")
 
 function get_env(EnvType; skip = 1, max_steps = 200, seed = nothing, value_reward = false, kwargs...)
     env_str = split(EnvType, "_")
@@ -129,7 +130,7 @@ function get_env(EnvType; skip = 1, max_steps = 200, seed = nothing, value_rewar
         env = CompassWorld(rng = rng)
         action_decoder = x -> softmax(x)
 
-    elseif contains(env_str[end], "OptEnv")
+    elseif env_str[end][1:6] == "OptEnv"
         sub_env_str = split(env_str[end], "-")
         max_env_steps = max_steps * skip
         env = OptEnv(string(state_representation), sub_env_str[2], sub_env_str[3], sub_env_str[4], max_steps = max_env_steps, rng = rng)
@@ -189,6 +190,31 @@ function get_env(EnvType; skip = 1, max_steps = 200, seed = nothing, value_rewar
         base_mdp, _, _ = get_env(env_str[1], skip = skip, seed = seed, max_steps = max_env_steps)
         observation_set = env_str[2]
         env = ContextualMDP(observation_set, base_mdp; kwargs..., rng = rng)
+
+        action_decoder = x -> softmax(x)
+
+    elseif contains(env_str[end], "RLOptEnv")
+        if contains(env_str[end], "stationary")
+            stationary = true
+        else
+            stationary = false
+        end
+
+        if contains(env_str[end], "hardexplore")
+            explore = :hard
+        elseif contains(env_str[end], "softexplore")
+            explore = :soft
+        else
+            explore = false
+        end
+
+        println(env_str)
+        env_str_remains = join(env_str[1:end-1], "_")
+        max_env_steps = max_steps * skip
+        rng = MersenneTwister(seed)
+
+        student_env, _, _ = get_env(env_str_remains, skip = skip, seed = seed, max_steps = max_steps, negative_reward = false)
+        env = RLOptEnv(student_env, state_representation, max_env_steps; rng = rng, stationary = stationary, explore = explore, kwargs...)
 
         action_decoder = x -> softmax(x)
 

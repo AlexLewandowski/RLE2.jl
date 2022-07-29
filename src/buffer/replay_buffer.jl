@@ -469,7 +469,7 @@ function sample_with_inds(buffer, sample_indices; bootstrap = true)
         end
 
         if length(ep) < H + 2
-            pad_episode!(ep, H + 2)
+            pad_episode!(buffer, ep, H + 2)
         else
             ep = ep[1:H+2]
         end
@@ -491,8 +491,8 @@ function StatsBase.sample(buffer::Vector{B}; batch_size = nothing, bootstrap = t
     end
 end
 
-function StatsBase.sample(buffer::TransitionReplayBuffer; batch_size = nothing, bootstrap = true)
-    StatsBase.sample(buffer, batch_size; bootstrap = bootstrap)
+function StatsBase.sample(buffer::TransitionReplayBuffer; batch_size = nothing, bootstrap = true, replacement = false,)
+    StatsBase.sample(buffer, batch_size; bootstrap = bootstrap, replacement = replacement)
 end
 
 function StatsBase.sample(
@@ -501,6 +501,7 @@ function StatsBase.sample(
     baseline = true,
     bootstrap = true,
     ind_range = nothing,
+    replacement = false,
 ) where {S,O,A}
 
     bootstrap = buffer.bootstrap
@@ -542,7 +543,7 @@ function StatsBase.sample(
         batch_size = length(sample_indices_temp)
     else
         sample_indices_temp =
-            StatsBase.sample(buffer.rng, list_of_p, batch_size, replace = false)
+            StatsBase.sample(buffer.rng, list_of_p, batch_size, replace = replacement)
     end
 
 
@@ -563,12 +564,12 @@ function StatsBase.sample(
     buffer._info_batch
 end
 
-function pad_episode!(ep, len)
+function pad_episode!(buffer, ep, len)
     s = ep[end].sp
     o = ep[end].op
     r = 0.0f0
     as = [e.a for e in ep]
-    a = rand(as)
+    a = rand(buffer.rng, as)
     done = true
     p = 0.5f0
     while length(ep) < len

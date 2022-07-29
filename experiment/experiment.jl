@@ -221,7 +221,6 @@ function run_experiment(config::Dict; test = false)
             end
             RLE2.reset!(env)
         end
-        [callback_f(agent, env) for callback_f in callback_funcs]
         calculate_and_log_metrics(
             agent,
             env,
@@ -229,6 +228,7 @@ function run_experiment(config::Dict; test = false)
             agent.measurement_dict,
             config["_SAVE"],
         )
+        [callback_f(agent, env) for callback_f in callback_funcs]
     end
 
     measurements = agent.measurement_dict
